@@ -1,6 +1,8 @@
 package ro.ananimarius.allridev3.ui.home;
 
+import android.content.res.Resources;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +16,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import ro.ananimarius.allridev3.R;
@@ -53,6 +56,14 @@ private FragmentHomeBinding binding;
     public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
 
+        try{
+            boolean success=googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(getContext(),R.raw.uber_maps_style));
+            if(!success){
+                Log.e("ERROR","Style parsing error");
+            }
+        }catch(Resources.NotFoundException e){
+            Log.e("ERROR",e.getMessage());
+        }
         // Add a marker in Sydney and move the camera
         LatLng sydney = new LatLng(-34, 151);
         mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
