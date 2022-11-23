@@ -89,7 +89,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                 task.getResult(ApiException.class);
                 navigateToSignInActivity();
             } catch (ApiException e) {
-                //Toast.makeText(getApplicationContext(), "Something went wrong!"+e.getStatusCode(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Something went wrong!"+e.getStatusCode(), Toast.LENGTH_SHORT).show();
             }
         }
         if (requestCode == RESOLVE_HINT) {
@@ -114,7 +114,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), driverInstance.getEmail(), Toast.LENGTH_SHORT).show();
         Intent intent=new Intent(getApplicationContext(), DriverHomeActivity.class);
         startActivity(intent);
-        //finish();
+        finish();
     }
 
     //GoogleApiClient apiClient;
