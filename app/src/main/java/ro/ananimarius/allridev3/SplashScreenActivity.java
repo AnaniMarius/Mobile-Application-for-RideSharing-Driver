@@ -112,7 +112,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         DriverInfo driverInstance=new DriverInfo(account.getId(),account.getEmail(),account.getFamilyName(),
                 account.getGivenName(),account.getPhotoUrl());
         Toast.makeText(getApplicationContext(), driverInstance.getEmail(), Toast.LENGTH_SHORT).show();
-        Intent intent=new Intent(getApplicationContext(), SomethingSomething.class);
+        Intent intent=new Intent(getApplicationContext(), DriverHomeActivity.class);
         startActivity(intent);
         //finish();
     }
