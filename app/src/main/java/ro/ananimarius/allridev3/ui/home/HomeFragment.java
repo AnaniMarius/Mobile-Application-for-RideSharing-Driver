@@ -98,6 +98,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
+        init();
 
 
         //pasted from mapActivity
