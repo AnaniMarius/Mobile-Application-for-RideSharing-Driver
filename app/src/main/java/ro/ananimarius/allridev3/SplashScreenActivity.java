@@ -106,10 +106,11 @@ public class SplashScreenActivity extends AppCompatActivity {
             }
         }
     }
+    public DriverInfo driverInstance=new DriverInfo();
     private void navigateToSignInActivity() {
 
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
-        DriverInfo driverInstance=new DriverInfo(account.getId(),account.getEmail(),account.getFamilyName(),
+        driverInstance=new DriverInfo(account.getId(),account.getEmail(),account.getFamilyName(),
                 account.getGivenName(),account.getPhotoUrl());
         Toast.makeText(getApplicationContext(), driverInstance.getEmail(), Toast.LENGTH_SHORT).show();
         Intent intent=new Intent(getApplicationContext(), DriverHomeActivity.class);

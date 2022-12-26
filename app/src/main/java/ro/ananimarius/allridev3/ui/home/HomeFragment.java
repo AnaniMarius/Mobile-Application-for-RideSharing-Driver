@@ -41,6 +41,7 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
 import ro.ananimarius.allridev3.R;
+import ro.ananimarius.allridev3.SplashScreenActivity;
 import ro.ananimarius.allridev3.databinding.FragmentHomeBinding;
 
 public class HomeFragment extends Fragment implements OnMapReadyCallback {
@@ -74,7 +75,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
                 LatLng newPosition = new LatLng(locationResult.getLastLocation().getLatitude(),
                         locationResult.getLastLocation().getLongitude());
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newPosition, 18f));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(newPosition, 14f));
             }
         };
 

@@ -2,12 +2,18 @@ package ro.ananimarius.allridev3.Common;
 
 import android.net.Uri;
 
+import com.google.android.gms.maps.model.LatLng;
+
 public class DriverInfo {
     public String accId;
     public String email;
     public String familyName;
     public String givenName;
     public Uri photoURL;
+    public LatLng latLong;
+
+    public DriverInfo() {
+    }
 
     public DriverInfo(String accId, String email, String familyName, String givenName, Uri photoURL) {
         this.accId = accId;
@@ -55,5 +61,13 @@ public class DriverInfo {
 
     public void setPhotoURL(Uri photoURL) {
         this.photoURL = photoURL;
+    }
+
+    public LatLng getLatLong() {
+        return latLong;
+    }
+
+    public void setLatLong(LatLng latLong) {
+        this.latLong = latLong;
     }
 }
