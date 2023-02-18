@@ -86,4 +86,10 @@ dependencies {
 
     //circle image
     implementation 'de.hdodenhof:circleimageview:3.1.0'
+
+    //for API connection
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+
+    //handle request and response objects
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
 }

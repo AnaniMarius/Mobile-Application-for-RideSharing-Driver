@@ -1,5 +1,6 @@
 package ro.ananimarius.allridev3;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.PendingIntent;
@@ -19,9 +20,27 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.squareup.okhttp.ResponseBody;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+
+import okhttp3.Request;
+import retrofit2.Callback;
+import retrofit2.HttpException;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.Field;
+import retrofit2.http.POST;
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.http.FormUrlEncoded;
 import ro.ananimarius.allridev3.Common.DriverInfo;
+
 
 public class SplashScreenActivity extends AppCompatActivity {
 
@@ -31,6 +50,7 @@ public class SplashScreenActivity extends AppCompatActivity {
     private Button googleSignin;
     GoogleSignInOptions gsio;
     GoogleSignInClient gsic;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,7 +80,6 @@ public class SplashScreenActivity extends AppCompatActivity {
                 googleSignIn();
             }
         });
-
 
 
 // FOR NON DEPRICATED PHONE SIGN IN, ALSO SALVAT IN STARBAR IN BROWSER
@@ -107,15 +126,57 @@ public class SplashScreenActivity extends AppCompatActivity {
         }
     }
     public DriverInfo driverInstance=new DriverInfo();
+    //API CONNECTION TO SEND GOOGLE INFO
+    public interface APIInterface {
+        @FormUrlEncoded
+        @POST("user/loginByGoogle")
+        Call<Void> sendGoogleAccount(@Field("idToken") String idToken,
+                                             @Field("email") String email);
+    }
     private void navigateToSignInActivity() {
 
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
         driverInstance=new DriverInfo(account.getId(),account.getEmail(),account.getFamilyName(),
                 account.getGivenName(),account.getPhotoUrl());
         Toast.makeText(getApplicationContext(), driverInstance.getEmail(), Toast.LENGTH_SHORT).show();
-        Intent intent=new Intent(getApplicationContext(), DriverHomeActivity.class);
-        startActivity(intent);
-        finish();
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://10.0.2.2:8080")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        APIInterface api = retrofit.create(APIInterface.class);
+
+        Call<Void> call = api.sendGoogleAccount(account.getIdToken()/*"342"*/, account.getEmail());
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(Call<Void> call, Response<Void> response) {
+                if (response.isSuccessful()) {
+                    Toast.makeText(getApplicationContext(), "ResponseCode " + response.code(), Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(getApplicationContext(), DriverHomeActivity.class);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Error sending Google account info to server: " + response.code()+account.getIdToken().length(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                int statusCode = 0;
+                String errorMessage = "";
+
+                if (t instanceof HttpException) {
+                    HttpException httpException = (HttpException) t;
+                    Response response = httpException.response();
+                    statusCode = response.code();
+                    errorMessage = response.message();
+                } else {
+                    errorMessage = t.getMessage();
+                }
+                Toast.makeText(getApplicationContext(), "Error sending Google account info to server, Status code: " + statusCode + ", Message: " + errorMessage+account.getIdToken().length(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     //GoogleApiClient apiClient;
