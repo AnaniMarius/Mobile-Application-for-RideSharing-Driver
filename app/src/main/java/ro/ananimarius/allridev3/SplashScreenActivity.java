@@ -7,7 +7,9 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.webkit.CookieManager;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -22,6 +24,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.JsonObject;
 import com.squareup.okhttp.ResponseBody;
 
 import org.json.JSONException;
@@ -130,7 +133,7 @@ public class SplashScreenActivity extends AppCompatActivity {
     public interface APIInterface {
         @FormUrlEncoded
         @POST("user/loginByGoogle")
-        Call<Void> sendGoogleAccount(@Field("idToken") String idToken,
+        Call<JsonObject> sendGoogleAccount(@Field("idToken") String idToken,
                                              @Field("email") String email);
     }
     private void navigateToSignInActivity() {
@@ -147,22 +150,42 @@ public class SplashScreenActivity extends AppCompatActivity {
 
         APIInterface api = retrofit.create(APIInterface.class);
 
-        Call<Void> call = api.sendGoogleAccount(account.getIdToken()/*"342"*/, account.getEmail());
-        call.enqueue(new Callback<Void>() {
+        Call<JsonObject> call = api.sendGoogleAccount(account.getIdToken(), account.getEmail());
+        call.enqueue(new Callback<JsonObject>() {
             @Override
-            public void onResponse(Call<Void> call, Response<Void> response) {
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
                 if (response.isSuccessful()) {
+                    //get the JSONObject from the response body
+                    JsonObject jsonResponse = response.body();
+                    //convert the JSONObject to a string
+                    String jsonString = jsonResponse.toString();
+                    // save the string to a cookie
+                    CookieManager.getInstance().setCookie("authToken", jsonString);
+
                     Toast.makeText(getApplicationContext(), "ResponseCode " + response.code(), Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(getApplicationContext(), DriverHomeActivity.class);
                     startActivity(intent);
+
+                    //check for the cookie if it exists
+                    CookieManager cookieManager = CookieManager.getInstance();
+                    String cookie = cookieManager.getCookie("authToken");
+                    if (cookie != null) {
+                        //the cookie exists
+                        Log.d("COOKIE", "authToken value: " + cookie);
+                        Toast.makeText(getApplicationContext(), "Cookie created " + cookie, Toast.LENGTH_SHORT).show();
+                    } else {
+                        //the cookie does not exist
+                        Log.d("COOKIE", "authToken cookie not found");
+                        Toast.makeText(getApplicationContext(), "Cookie failed to be created " + cookie, Toast.LENGTH_SHORT).show();
+                    }
                     finish();
                 } else {
-                    Toast.makeText(getApplicationContext(), "Error sending Google account info to server: " + response.code()+account.getIdToken().length(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Error sending Google account info to server: " + response.code(), Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
-            public void onFailure(Call<Void> call, Throwable t) {
+            public void onFailure(Call<JsonObject> call, Throwable t) {
                 int statusCode = 0;
                 String errorMessage = "";
 
