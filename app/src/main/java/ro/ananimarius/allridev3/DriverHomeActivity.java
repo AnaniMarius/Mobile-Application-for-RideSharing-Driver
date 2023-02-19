@@ -2,9 +2,13 @@ package ro.ananimarius.allridev3;
 
 import android.content.Intent;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
+import android.webkit.CookieManager;
+import android.webkit.CookieSyncManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,9 +18,11 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
+import com.google.gson.JsonObject;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
+import retrofit2.Retrofit;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.navigation.NavController;
@@ -26,8 +32,22 @@ import androidx.navigation.ui.NavigationUI;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.IOException;
+import org.json.JSONException;
+import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.HttpException;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.Field;
+import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.POST;
+import retrofit2.http.Query;
 import ro.ananimarius.allridev3.Common.DriverInfo;
 import ro.ananimarius.allridev3.databinding.ActivityDriverHomeBinding;
 
@@ -43,13 +63,6 @@ public class DriverHomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        Button signOut=(Button) findViewById(R.id.nav_sign_out);
-//        signOut.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Toast.makeText(getApplicationContext(), "teeeest", Toast.LENGTH_SHORT).show();
-//            }
-//        });
         binding = ActivityDriverHomeBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -78,60 +91,44 @@ public class DriverHomeActivity extends AppCompatActivity {
         init();
     }
 
-//    private void init() {
-//        //here we initialize the signout button
-//        navigationView.setNavigationItemSelectedListener(item -> {
-//            if(item.getItemId() == R.id.nav_sign_out) {
-//                AlertDialog.Builder builder = new AlertDialog.Builder(DriverHomeActivity.this);
-//                builder.setTitle("Sign out")
-//                        .setMessage("Confirm to sign out")
-//                        .setNegativeButton("Cancel", (dialogInterface, i) -> dialogInterface.dismiss())
-//                        .setPositiveButton("Sign Out", (dialogInterface, i) -> {
-//                            //revoke access token before signing out
-//                            GoogleSignInClient signInClient = GoogleSignIn.getClient(DriverHomeActivity.this,
-//                                    GoogleSignInOptions.DEFAULT_SIGN_IN);
-//                            signInClient.revokeAccess().addOnCompleteListener(task -> {
-//                                //API SIGN OUT CODE TO COMPLETE HERE BEFORE INTENT
-//
-//                                //make an HTTP request to the signout endpoint of your API
-//                                String url = "http://10.0.2.2:8080/user/signout";
-//                                OkHttpClient client = new OkHttpClient();
-//                                Request request = new Request.Builder()
-//                                        .url(url)
-//                                        .build();
-//                                try {
-//                                    Response response = client.newCall(request).execute();
-//                                    if (response.isSuccessful()) {
-//                                        //API SIGN OUT CODE TO COMPLETE HERE BEFORE INTENT
-//                                        Intent intent = new Intent(DriverHomeActivity.this, SplashScreenActivity.class);
-//                                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//                                        startActivity(intent);
-//                                        finish();
-//                                    } else {
-//                                        //handle unsuccessful response
-//                                    }
-//                                } catch (IOException e) {
-//                                    //handle network error
-//                                }
-//                                Intent intent = new Intent(DriverHomeActivity.this, SplashScreenActivity.class);
-//                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//                                startActivity(intent);
-//                                finish();
-//                            });
-//                        })
-//                        .setCancelable(false);
-//                AlertDialog dialog = builder.create();
-//                dialog.setOnShowListener(dialogInterface -> {
-//                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-//                            .setTextColor(getResources().getColor(android.R.color.holo_red_dark));
-//                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-//                            .setTextColor(getResources().getColor(R.color.colorAccent));
-//                });
-//                dialog.show();
-//            }
-//            return true;
-//        });
-//    }
+private String getAuthTokenCookie(){ //SEARCH FOR THE COOKIE TO BE SENT TO THE API
+    CookieManager cookieManagerCheck = CookieManager.getInstance();
+    String cookie = cookieManagerCheck.getCookie("http://10.0.2.2:8080");
+    if (cookie != null) {
+        //the cookie exists
+        Log.d("COOKIE_GET", "authToken value: " + cookie);
+        //Toast.makeText(getApplicationContext(), "Cookie found ", Toast.LENGTH_SHORT).show();
+    } else {
+        //the cookie does not exist
+        Log.d("COOKIE_GET", "authToken cookie not found");
+        //Toast.makeText(getApplicationContext(), "Cookie not found ", Toast.LENGTH_SHORT).show();
+    }
+    return cookie;
+}
+private void deleteCookie(){ //delete cookie from the client
+    CookieManager cookieManagerCheck = CookieManager.getInstance();
+    String cookie = cookieManagerCheck.getCookie("http://10.0.2.2:8080");
+    if (cookie != null) {
+        // The cookie exists
+        Log.d("COOKIE_DELETED", "authToken value: " + cookie);
+        //Toast.makeText(getApplicationContext(), "Cookie found has been deleted ", Toast.LENGTH_SHORT).show();
+
+        //delete the cookie
+        cookieManagerCheck.setCookie("http://10.0.2.2:8080", "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cookieManagerCheck.flush();
+        } else {
+            CookieSyncManager.createInstance(this);
+            CookieSyncManager.getInstance().sync();
+        }
+    } else {
+        //the cookie does not exist
+        Log.d("COOKIE_DELETED", "authToken cookie not found");
+        //Toast.makeText(getApplicationContext(), "Cookie not found ", Toast.LENGTH_SHORT).show();
+    }
+
+}
+
 private void init() {
     //here we initialize the signout button
     navigationView.setNavigationItemSelectedListener(item -> {
@@ -163,25 +160,31 @@ private void init() {
     });
 }
 
-    private class SignOutTask extends AsyncTask<Void, Void, Boolean> {
+    private class SignOutTask extends AsyncTask<Void, Void, Boolean> { //SEND THE AUTHTOKEN BACK TO DELETE IT
         @Override
         protected Boolean doInBackground(Void... params) {
-            //make an HTTP request to the signout endpoint of the API
-            String url = "http://10.0.2.2:8080/user/signout";
-            OkHttpClient client = new OkHttpClient();
-            Request request = new Request.Builder()
-                    .url(url)
-                    .build();
+            String authToken = getAuthTokenCookie();
+            //try to parse
+            String authTokenParsed=null;
             try {
-                Response response = client.newCall(request).execute();
-                if (response.isSuccessful()) {
+                JSONObject jsonObject = new JSONObject(authToken.substring(9));
+                authTokenParsed = jsonObject.getString("authToken");
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            String url = "http://10.0.2.2:8080/user/signout?authToken=" + authTokenParsed;
+            try {
+                HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+                connection.setRequestMethod("POST");
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    deleteCookie();
                     return true;
-                } else {
-                    return false;
                 }
             } catch (IOException e) {
-                return false;
+                e.printStackTrace();
             }
+            return false;
         }
 
         @Override
@@ -210,5 +213,10 @@ private void init() {
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_driver_home);
         return NavigationUI.navigateUp(navController, mAppBarConfiguration)
                 || super.onSupportNavigateUp();
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        new SignOutTask().execute();
     }
 }

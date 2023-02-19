@@ -6,10 +6,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.CookieSyncManager;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -160,15 +162,28 @@ public class SplashScreenActivity extends AppCompatActivity {
                     //convert the JSONObject to a string
                     String jsonString = jsonResponse.toString();
                     // save the string to a cookie
-                    CookieManager.getInstance().setCookie("authToken", jsonString);
+                    //CookieManager.getInstance().setCookie("authToken=",jsonString);
+
+                    //set the cookie with the domain name
+                    CookieManager cookieManager = CookieManager.getInstance();
+                    cookieManager.setAcceptCookie(true);
+                    cookieManager.setCookie( "http://10.0.2.2:8080","authToken"+ jsonString);
+
+                    //sync the cookies accordingly to the android version
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        cookieManager.flush();
+                    } else {
+                        CookieSyncManager.createInstance(getApplicationContext());
+                        CookieSyncManager.getInstance().sync();
+                    }
 
                     Toast.makeText(getApplicationContext(), "ResponseCode " + response.code(), Toast.LENGTH_SHORT).show();
                     Intent intent = new Intent(getApplicationContext(), DriverHomeActivity.class);
                     startActivity(intent);
 
                     //check for the cookie if it exists
-                    CookieManager cookieManager = CookieManager.getInstance();
-                    String cookie = cookieManager.getCookie("authToken");
+                    CookieManager cookieManagerCheck = CookieManager.getInstance();
+                    String cookie = cookieManagerCheck.getCookie("http://10.0.2.2:8080");
                     if (cookie != null) {
                         //the cookie exists
                         Log.d("COOKIE", "authToken value: " + cookie);
