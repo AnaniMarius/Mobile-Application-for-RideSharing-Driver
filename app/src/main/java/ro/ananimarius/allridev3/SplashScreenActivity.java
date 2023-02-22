@@ -2,12 +2,25 @@ package ro.ananimarius.allridev3;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Criteria;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -24,7 +37,14 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.gson.JsonObject;
 import com.squareup.okhttp.ResponseBody;
@@ -33,6 +53,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 
 import okhttp3.Request;
 import retrofit2.Callback;
@@ -49,8 +71,8 @@ import ro.ananimarius.allridev3.Common.DriverInfo;
 
 public class SplashScreenActivity extends AppCompatActivity {
 
-    private final static int loginRequestCode=666999;
-    private final static int RESOLVE_HINT=420420;
+    private final static int loginRequestCode = 666999;
+    private final static int RESOLVE_HINT = 420420;
     private Button phoneSignin;
     private Button googleSignin;
     GoogleSignInOptions gsio;
@@ -60,6 +82,11 @@ public class SplashScreenActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.layout_sign_in);
+
+        //check if the app has location permission, and request it if not
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+        }
 
         googleSignin = (Button) findViewById(R.id.btn_google_sign_in);
 
@@ -82,6 +109,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         googleSignin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                getLocation();
                 googleSignIn();
             }
         });
@@ -98,7 +126,95 @@ public class SplashScreenActivity extends AppCompatActivity {
         });
     }
 
+    // Create an instance of FusedLocationProviderClient
+    private FusedLocationProviderClient fusedLocationClient;
+    double latitude = 0;
+    double longitude = 0;
+    Location mlocation = null;
+    String address = null;
+    String city;
+    String state;
+    String country;
+    String postalCode;
 
+    private void getLocation() {
+        final LocationListener locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                mlocation = location;
+                Log.d("Location Changes", location.toString());
+                latitude = location.getLatitude();
+                longitude = location.getLongitude();
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+                Log.d("Status Changed", String.valueOf(status));
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+                Log.d("Provider Enabled", provider);
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+                Log.d("Provider Disabled", provider);
+            }
+        };
+
+        // Now first make a criteria with your requirements
+        // this is done to save the battery life of the device
+        // there are various other other criteria you can search for..
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        criteria.setPowerRequirement(Criteria.POWER_LOW);
+        criteria.setAltitudeRequired(false);
+        criteria.setBearingRequired(false);
+        criteria.setSpeedRequired(false);
+        criteria.setCostAllowed(true);
+        criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+        criteria.setVerticalAccuracy(Criteria.ACCURACY_HIGH);
+
+        // Now create a location manager
+        final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+        // This is the Best And IMPORTANT part
+        final Looper looper = null;
+
+        // Now whenever the button is clicked fetch the location one time
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        locationManager.requestSingleUpdate(criteria, locationListener, looper);
+    }
+    //ASK PERMISSION AND CLOSE APP IF DENIED.
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 1) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                //ggetLocation();
+            } else {
+                Toast.makeText(getApplicationContext(), "Permission denied. Closing app...", Toast.LENGTH_SHORT).show();
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        finishAffinity();
+                    }
+                }, 2000); //2 seconds
+            }
+        }
+    }
     private void googleSignIn() {
         Intent signInIntent=gsic.getSignInIntent();
         startActivityForResult(signInIntent,loginRequestCode);
@@ -136,7 +252,11 @@ public class SplashScreenActivity extends AppCompatActivity {
         @FormUrlEncoded
         @POST("user/loginByGoogle")
         Call<JsonObject> sendGoogleAccount(@Field("idToken") String idToken,
-                                             @Field("email") String email);
+                                             @Field("email") String email,
+                                           @Field("familyName") String fName,
+                                           @Field("givenName") String gName,
+                                           @Field("latitude") double latitude,
+                                           @Field("longitude")double longitude);
     }
     private void navigateToSignInActivity() {
 
@@ -151,8 +271,8 @@ public class SplashScreenActivity extends AppCompatActivity {
                 .build();
 
         APIInterface api = retrofit.create(APIInterface.class);
-
-        Call<JsonObject> call = api.sendGoogleAccount(account.getIdToken(), account.getEmail());
+        Call<JsonObject> call = api.sendGoogleAccount(account.getIdToken(), account.getEmail(), account.getFamilyName(),
+                account.getGivenName(), latitude, longitude);
         call.enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {

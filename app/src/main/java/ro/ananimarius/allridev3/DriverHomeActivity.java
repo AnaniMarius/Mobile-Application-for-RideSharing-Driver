@@ -7,13 +7,16 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.Menu;
+import android.view.ViewTreeObserver;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Toolbar;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.material.snackbar.Snackbar;
@@ -25,6 +28,7 @@ import com.squareup.okhttp.Response;
 import retrofit2.Retrofit;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -76,15 +80,32 @@ public class DriverHomeActivity extends AppCompatActivity {
                 R.id.nav_home)
                 .setOpenableLayout(drawer)
                 .build();
+
+        //here is used the HOMEFRAGMENT.JAVA
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
+//        if (account != null) {
+//            TextView nameTxt = (TextView)findViewById(R.id.nameText);
+//            nameTxt.setText(account.getGivenName()); //GIVES RUNTIME ERROR
+//        }
+
+
+        Bundle bundle = new Bundle();
+        bundle.putString("googleId", account.getIdToken());
+        bundle.putString("email", account.getEmail());
         navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_driver_home);
+        navController.setGraph(R.navigation.mobile_navigation, bundle);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
+//        navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_driver_home);
+//        NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
+//        NavigationUI.setupWithNavController(navigationView, navController);
+
         //set data for user
-        View headerView=navigationView.getHeaderView(0);
-        TextView txt_name=(TextView) headerView.findViewById(R.id.txt_name);
-        TextView txt_phone=(TextView) headerView.findViewById(R.id.txt_phone);
-        TextView txt_star=(TextView) headerView.findViewById(R.id.txt_star);
+//        View headerView=navigationView.getHeaderView(0);
+//        TextView txt_name=(TextView) headerView.findViewById(R.id.txt_name);
+//        TextView txt_phone=(TextView) headerView.findViewById(R.id.txt_phone);
+//        TextView txt_star=(TextView) headerView.findViewById(R.id.txt_star);
 
         //txt_name.setText(DriverInfo.buildWelcomeMessage());
 
@@ -105,6 +126,7 @@ private String getAuthTokenCookie(){ //SEARCH FOR THE COOKIE TO BE SENT TO THE A
     }
     return cookie;
 }
+
 private void deleteCookie(){ //delete cookie from the client
     CookieManager cookieManagerCheck = CookieManager.getInstance();
     String cookie = cookieManagerCheck.getCookie("http://10.0.2.2:8080");
@@ -126,7 +148,6 @@ private void deleteCookie(){ //delete cookie from the client
         Log.d("COOKIE_DELETED", "authToken cookie not found");
         //Toast.makeText(getApplicationContext(), "Cookie not found ", Toast.LENGTH_SHORT).show();
     }
-
 }
 
 private void init() {
@@ -160,7 +181,7 @@ private void init() {
     });
 }
 
-    private class SignOutTask extends AsyncTask<Void, Void, Boolean> { //SEND THE AUTHTOKEN BACK TO DELETE IT
+    class SignOutTask extends AsyncTask<Void, Void, Boolean> { //SEND THE AUTHTOKEN BACK TO DELETE IT
         @Override
         protected Boolean doInBackground(Void... params) {
             String authToken = getAuthTokenCookie();

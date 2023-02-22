@@ -25,7 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/ic_baseline_perm_phone_msg_24"
-            android:text="Sign In with Phone"
+            android:text="Continue with Phone"
             android:textColor="@android:color/black">
         </androidx.appcompat.widget.AppCompatButton>
 
@@ -37,7 +37,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:drawableStart="@drawable/fui_ic_googleg_color_24dp"
-            android:text="Sign In with Google"
+            android:text="Continue with Google"
             android:textColor="@android:color/black">
         </androidx.appcompat.widget.AppCompatButton>
 
