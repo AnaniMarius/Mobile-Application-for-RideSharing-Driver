@@ -26,6 +26,7 @@ import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.widget.Button;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.credentials.Credential;
@@ -75,6 +76,7 @@ public class SplashScreenActivity extends AppCompatActivity {
     private final static int RESOLVE_HINT = 420420;
     private Button phoneSignin;
     private Button googleSignin;
+    private Switch driverCheck;
     GoogleSignInOptions gsio;
     GoogleSignInClient gsic;
 
@@ -88,6 +90,7 @@ public class SplashScreenActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
 
+        driverCheck=(Switch) findViewById(R.id.switch1);
         googleSignin = (Button) findViewById(R.id.btn_google_sign_in);
 
         String AUTH_ID = "1054018382060-i69d011p6jksrqber2k4h1dn37taijev.apps.googleusercontent.com";
@@ -255,6 +258,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                                              @Field("email") String email,
                                            @Field("familyName") String fName,
                                            @Field("givenName") String gName,
+                                           @Field("isDriver") Boolean driverCheck,
                                            @Field("latitude") double latitude,
                                            @Field("longitude")double longitude);
     }
@@ -272,7 +276,7 @@ public class SplashScreenActivity extends AppCompatActivity {
 
         APIInterface api = retrofit.create(APIInterface.class);
         Call<JsonObject> call = api.sendGoogleAccount(account.getIdToken(), account.getEmail(), account.getFamilyName(),
-                account.getGivenName(), latitude, longitude);
+                account.getGivenName(), driverCheck.isChecked(), latitude, longitude);
         call.enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
@@ -296,10 +300,15 @@ public class SplashScreenActivity extends AppCompatActivity {
                         CookieSyncManager.createInstance(getApplicationContext());
                         CookieSyncManager.getInstance().sync();
                     }
-
                     Toast.makeText(getApplicationContext(), "ResponseCode " + response.code(), Toast.LENGTH_SHORT).show();
-                    Intent intent = new Intent(getApplicationContext(), DriverHomeActivity.class);
-                    startActivity(intent);
+
+                    if(driverCheck.isChecked()) {
+                        Intent intent = new Intent(getApplicationContext(), DriverHomeActivity.class);
+                        startActivity(intent);
+                    }
+                    else{
+                        //open customer side
+                    }
 
                     //check for the cookie if it exists
                     CookieManager cookieManagerCheck = CookieManager.getInstance();
