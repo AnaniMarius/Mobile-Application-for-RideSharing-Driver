@@ -7,6 +7,7 @@ import android.content.res.Resources;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -48,6 +49,11 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.TimerTask;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.HttpException;
@@ -56,7 +62,10 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.GET;
 import retrofit2.http.POST;
+import retrofit2.http.Query;
+import ro.ananimarius.allridev3.Common.Notification;
 import ro.ananimarius.allridev3.DriverHomeActivity;
 import ro.ananimarius.allridev3.Functions;
 import ro.ananimarius.allridev3.R;
@@ -84,6 +93,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
     public void onDestroy() {
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         super.onDestroy();
+        // Stop the periodic background task of checking the notifications
+        handler.removeCallbacks(notificationsRunnable);
+        super.onDestroy();
     }
 
     public interface APIInterface {
@@ -93,6 +105,10 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                                            @Field("idToken") String googleId,
                                            @Field("latitude") double latitude,
                                            @Field("longitude")double longitude);
+
+        @GET("user/getRequestFromCustomerNotification")
+        Call<Notification> getRequestFromCustomerNotification(@Query("authToken") String authToken,
+                                                  @Query("idToken") String idToken);
     }
     Retrofit retrofit = new Retrofit.Builder()
             .baseUrl("http://10.0.2.2:8080")
@@ -108,12 +124,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
         locationRequest.setInterval(5000);
         locationRequest.setFastestInterval(3000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-//        LocationRequest locationRequest = new LocationRequest.Builder()
-//                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-//                .setInterval(5000)
-//                .setFastestInterval(3000)
-//                .setSmallestDisplacement(10f)
-//                .build();
 
         locationCallback = new LocationCallback() {
             @Override
@@ -163,13 +173,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getContext());
         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
@@ -217,13 +220,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
                     @Override
                     public void onPermissionGranted(PermissionGrantedResponse permissionGrantedResponse) {
                         if (ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                            // TODO: Consider calling
-                            //    ActivityCompat#requestPermissions
-                            // here to request the missing permissions, and then overriding
-                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                            //                                          int[] grantResults)
-                            // to handle the case where the user grants the permission. See the documentation
-                            // for ActivityCompat#requestPermissions for more details.
                             return;
                         }
                         mMap.setMyLocationEnabled(true);
@@ -270,4 +266,64 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback {
             Log.e("ERROR",e.getMessage());
         }
     }
+
+    //CHECK THE NOTIFICATIONS
+    private Handler handler = new Handler();
+    private int delay = 5000; // 5 seconds in milliseconds
+    private Runnable notificationsRunnable = new Runnable() {
+        @Override
+        public void run() {
+            checkNotifications();
+            handler.postDelayed(this, delay);
+        }
+    };
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        //start the periodic background task
+        handler.postDelayed(notificationsRunnable, delay);
+    }
+    List<Notification> notifications=new ArrayList<>();
+    private void checkNotifications() {
+        Call<Notification> call = api.getRequestFromCustomerNotification(authToken, idToken);
+        call.enqueue(new Callback<Notification>() {
+            @Override
+            public void onResponse(Call<Notification> call, Response<Notification> response) {
+                if (response.isSuccessful()) {
+                    Notification notification = response.body();
+                    if (notification != null) {
+                        Toast.makeText(getContext(), "Request from: " + notification.getCustomerFirstName(), Toast.LENGTH_SHORT).show();
+                        notifications.add(notification);
+                    }
+                    removeNotifications();
+                }
+                else{
+                    Toast.makeText(getContext(), "CheckNotificationError: " + response.code()+"+"+response.message(), Toast.LENGTH_SHORT).show();
+                }
+            }
+            @Override
+            public void onFailure(Call<Notification> call, Throwable t) {
+                // Handle the error
+            }
+        });
+    }
+
+    private void removeNotifications(){
+        TimerTask removeExpiredNotificationsTask = new TimerTask() {
+            @Override
+            public void run() {
+                long currentTimeMillis = System.currentTimeMillis();
+                    Iterator<Notification> iterator = notifications.iterator();
+                    while (iterator.hasNext()) {
+                        Notification nextN = iterator.next();
+                        if ((currentTimeMillis - nextN.getTimeCreated()) > 20000) {
+                            iterator.remove();
+                        }
+                    }
+                }
+
+        };
+    }
+
+
 }
