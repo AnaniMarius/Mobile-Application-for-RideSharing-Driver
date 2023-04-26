@@ -1,9 +1,141 @@
 <?xml version="1.0" encoding="utf-8"?>
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:map="http://schemas.android.com/apk/res-auto"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/map"
-    android:name="com.google.android.gms.maps.SupportMapFragment"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MapsActivity" />
+    android:layout_height="match_parent">
+
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".MapsActivity"/>
+
+    <com.google.android.material.chip.Chip
+        android:id="@+id/chip_decline"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="@string/decline"
+        android:textColor="@android:color/white"
+        app:chipBackgroundColor="@color/colorAccent"
+        app:chipIcon="@drawable/ic_baseline_clear_24"
+        app:chipIconTint="@android:color/white"/>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/layout_accept"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:clickable="true"
+        android:layout_margin="8dp"
+        app:cardBackgroundColor="@color/colorAccent"
+        app:cardCornerRadius="8dp">
+        
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="16dp">
+            
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/txt_type_uber"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginRight="8dp"
+                    android:fontFamily="@font/uber_move"
+                    android:text="Request"
+                    android:textColor="@android:color/white"
+                    android:textSize="18sp"/>
+
+                <RelativeLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:gravity="center">
+                    
+                    <com.mikhaellopez.circularprogressbar.CircularProgressBar
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
+                        android:id="@+id/circularProgressBar"
+                        app:cpb_background_progressbar_color="@android:color/white"
+                        app:cpb_background_progressbar_width="3dp"
+                        app:cpb_progress="0"
+                        app:cpb_progress_direction="to_right"
+                        app:cpb_progress_max="100"
+                        app:cpb_progressbar_color="@color/white"
+                        app:cpb_progressbar_width="3dp"
+                        app:cpb_round_border="false"/>
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_centerInParent="true"
+                        android:clickable="false"
+                        android:visibility="gone"
+                        android:src="@drawable/ic_baseline_person_24"
+                        app:tint="@android:color/white" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/countDown"
+                        android:layout_centerInParent="true"
+                        android:fontFamily="@font/uber_move"
+                        android:text="6"
+                        android:textColor="@android:color/white"
+                        android:textSize="35dp"/>
+
+
+                </RelativeLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/txt_rating"
+                    android:layout_gravity="center_vertical"
+                    android:layout_marginLeft="8dp"
+                    android:drawableRight="@drawable/ic_baseline_star_rate_24"
+                    android:fontFamily="@font/uber_move"
+                    android:text="420"
+                    android:textColor="@android:color/white"
+                    android:textSize="18sp"/>
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/txt_estimate_time"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@font/uber_move_bold"
+                android:text="69 min"
+                android:textColor="@android:color/white"
+                android:textSize="20sp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/txt_estimate_distance"
+                android:layout_gravity="center_horizontal"
+                android:fontFamily="@font/uber_move"
+                android:text="69.420 km"
+                android:textColor="@android:color/white"
+                android:textSize="16sp"/>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+</FrameLayout>
