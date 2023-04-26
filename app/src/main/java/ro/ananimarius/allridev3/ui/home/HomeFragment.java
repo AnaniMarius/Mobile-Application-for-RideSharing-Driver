@@ -95,6 +95,7 @@ import retrofit2.http.Query;
 import ro.ananimarius.allridev3.Common.DirectionsApiService;
 import ro.ananimarius.allridev3.Common.DirectionsResponse;
 import ro.ananimarius.allridev3.Common.Notification;
+import ro.ananimarius.allridev3.Common.PolylineData;
 import ro.ananimarius.allridev3.Common.RetrofitClient;
 import ro.ananimarius.allridev3.DriverHomeActivity;
 import ro.ananimarius.allridev3.Functions;
@@ -374,7 +375,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
                         customerMarker = mMap.addMarker(customerMarkerOptions);
                         //compute the directions between the driver and the customer
-                        calculateDirections(customerMarker, latitude, longitude, R.color.teal_700);
+                        calculateDirections(customerMarker, latitude, longitude, R.color.Blue);
 
                         //add a marker to the destination
                         LatLng destinationPosition = new LatLng(notification.getDestLatitude(), notification.getDestLongitude());
@@ -385,7 +386,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
                         destinationMarker = mMap.addMarker(destinationMarkerOptions);
                         //compute the directions between the customer and the destination
-                        calculateDirections(destinationMarker, notification.getCustLatitude(), notification.getCustLongitude(), R.color.purple_700);
+                        calculateDirections(destinationMarker, notification.getCustLatitude(), notification.getCustLongitude(), R.color.Red);
                         Toast.makeText(getContext(), "Request from: " + notification.getCustomerFirstName(), Toast.LENGTH_SHORT).show();
                         notifications.add(notification);
                     }
@@ -487,6 +488,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 
     private void declineRequest(Notification notification) {
         notifications.remove(notification);
+        removeAllPolylines(outsideUsingResult);
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -500,6 +502,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 
     //map directions api
     private GeoApiContext mGeoApiContext=null;
+    DirectionsResult outsideUsingResult=null;
     private void calculateDirections(Marker marker, Double auxLatitude, Double auxLongitude, int polyLineColor){
         Log.d(TAG, "calculateDirections: calculating directions.");
 
@@ -526,7 +529,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 Log.d(TAG, "calculateDirections: duration: " + result.routes[0].legs[0].duration);
                 Log.d(TAG, "calculateDirections: distance: " + result.routes[0].legs[0].distance);
                 Log.d(TAG, "calculateDirections: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
-
+                outsideUsingResult=result;
                 addPolylinesToMap(result, polyLineColor);
             }
 
@@ -537,11 +540,31 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             }
         });
     }
+    private void removeAllPolylines(final DirectionsResult result){
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                for (PolylineData polylineData : mPolyLinesData) {
+                    polylineData.getPolyline().remove();
+                }
+                mPolyLinesData.clear();
+                mPolyLinesData = new ArrayList<>();
+            }
+        });
+    }
     private void addPolylinesToMap(final DirectionsResult result, int polyLineColor){
         new Handler(Looper.getMainLooper()).post(new Runnable() {
             @Override
             public void run() {
                 Log.d(TAG, "run: result routes: " + result.routes.length);
+
+                if(mPolyLinesData.size() > 1){
+                    for(PolylineData polylineData: mPolyLinesData){
+                        polylineData.getPolyline().remove();
+                    }
+                    mPolyLinesData.clear();
+                    mPolyLinesData = new ArrayList<>();
+                }
 
                 for(DirectionsRoute route: result.routes){
                     Log.d(TAG, "run: leg: " + route.legs[0].toString());
@@ -563,7 +586,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodedPath));
                     polyline.setColor(ContextCompat.getColor(getActivity(), polyLineColor));
                     polyline.setClickable(true);
-
+                    mPolyLinesData.add(new PolylineData(polyline, route.legs[0]));
                 }
             }
         });
@@ -573,9 +596,22 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 
     }
 
-    @Override
-    public void onPolylineClick(@NonNull Polyline polyline) {
 
+    private ArrayList<PolylineData> mPolyLinesData = new ArrayList<>();
+    @Override
+    public void onPolylineClick(Polyline polyline) {
+
+        for(PolylineData polylineData: mPolyLinesData){
+            Log.d(TAG, "onPolylineClick: toString: " + polylineData.toString());
+            if(polyline.getId().equals(polylineData.getPolyline().getId())){
+                polylineData.getPolyline().setColor(ContextCompat.getColor(getActivity(), R.color.BlueViolet));
+                polylineData.getPolyline().setZIndex(1);
+            }
+            else{
+                polylineData.getPolyline().setColor(ContextCompat.getColor(getActivity(), R.color.DarkGray));
+                polylineData.getPolyline().setZIndex(0);
+            }
+        }
     }
 
 //    String custLoc;
