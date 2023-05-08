@@ -59,6 +59,7 @@ import com.google.maps.PendingResult;
 import com.google.maps.internal.PolylineEncoding;
 import com.google.maps.model.DirectionsResult;
 import com.google.maps.model.DirectionsRoute;
+import com.google.maps.model.Duration;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -268,6 +269,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                         }
                         mMap.setMyLocationEnabled(true);
                         mMap.getUiSettings().setMyLocationButtonEnabled(true);
+                        mMap.getUiSettings().setZoomControlsEnabled(true);
                         mMap.setOnMyLocationButtonClickListener(() -> {
                             fusedLocationProviderClient.getLastLocation()
                                     .addOnFailureListener(e -> Toast.makeText(getContext(),"Error to get location: "+e.getMessage(),Toast.LENGTH_SHORT).show())
@@ -284,9 +286,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 .findViewById(Integer.parseInt("2"));
                         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) locationButton.getLayoutParams();
                         //place it to right bottom
-                        params.addRule(RelativeLayout.ALIGN_PARENT_TOP,0);
-                        params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM,RelativeLayout.TRUE);
-                        params.setMargins(0,0,0,50);
+//                        params.addRule(RelativeLayout.ALIGN_PARENT_TOP,0);
+//                        params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM,RelativeLayout.TRUE);
+//                        params.setMargins(0,0,0,50);
                     }
 
                     @Override
@@ -351,6 +353,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     Marker destinationMarker;
     MarkerOptions customerMarkerOptions;
     Marker customerMarker;
+    double[] tripDurations = new double[2];
+    double[] tripDistances = new double[2];
     private void checkNotifications() {
         Call<Notification> call = api.getRequestFromCustomerNotification(authToken, idToken);
         call.enqueue(new Callback<Notification>() {
@@ -375,8 +379,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
                         customerMarker = mMap.addMarker(customerMarkerOptions);
                         //compute the directions between the driver and the customer
-                        calculateDirections(customerMarker, latitude, longitude, R.color.Blue);
-
+                        calculateDirections(customerMarker, latitude, longitude, R.color.Blue, 0);
                         //add a marker to the destination
                         LatLng destinationPosition = new LatLng(notification.getDestLatitude(), notification.getDestLongitude());
                         destinationMarkerOptions = new MarkerOptions()
@@ -386,7 +389,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
                         destinationMarker = mMap.addMarker(destinationMarkerOptions);
                         //compute the directions between the customer and the destination
-                        calculateDirections(destinationMarker, notification.getCustLatitude(), notification.getCustLongitude(), R.color.Red);
+                        calculateDirections(destinationMarker, notification.getCustLatitude(), notification.getCustLongitude(), R.color.Red, 1);
                         Toast.makeText(getContext(), "Request from: " + notification.getCustomerFirstName(), Toast.LENGTH_SHORT).show();
                         notifications.add(notification);
                     }
@@ -501,9 +504,10 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     }
 
     //map directions api
+
     private GeoApiContext mGeoApiContext=null;
     DirectionsResult outsideUsingResult=null;
-    private void calculateDirections(Marker marker, Double auxLatitude, Double auxLongitude, int polyLineColor){
+    private void calculateDirections(Marker marker, Double auxLatitude, Double auxLongitude, int polyLineColor, int index){
         Log.d(TAG, "calculateDirections: calculating directions.");
 
         com.google.maps.model.LatLng destination = new com.google.maps.model.LatLng(
@@ -512,7 +516,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         );
         DirectionsApiRequest directions = new DirectionsApiRequest(mGeoApiContext);
 
-        directions.alternatives(true);
+        directions.alternatives(false);
         directions.origin(
                 new com.google.maps.model.LatLng(
                         //mUserPosition.getGeo_point().getLatitude(),
@@ -530,6 +534,21 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 Log.d(TAG, "calculateDirections: distance: " + result.routes[0].legs[0].distance);
                 Log.d(TAG, "calculateDirections: geocodedWayPoints: " + result.geocodedWaypoints[0].toString());
                 outsideUsingResult=result;
+                tripDurations[index] = result.routes[0].legs[0].duration.inSeconds;
+                tripDistances[index] = result.routes[0].legs[0].distance.inMeters;
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        txt_estimate_time = getView().findViewById(R.id.txt_estimate_time);
+                        if (tripDurations[0]!=0 && tripDurations[1]!=0) {
+                            txt_estimate_time.setText(String.valueOf((int)(tripDurations[0]+tripDurations[1])/60)+" min");
+                        }
+                        txt_estimate_distance=getView().findViewById(R.id.txt_estimate_distance);
+                        if(tripDistances[0]!=0 && tripDistances[1]!=0){
+                            txt_estimate_distance.setText(String.valueOf((float)(tripDistances[0]+tripDistances[1])/1000)+ " km");
+                        }
+                    }
+                });
                 addPolylinesToMap(result, polyLineColor);
             }
 
@@ -595,7 +614,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     public void onInfoWindowClick(@NonNull Marker marker) {
 
     }
-
 
     private ArrayList<PolylineData> mPolyLinesData = new ArrayList<>();
     @Override
