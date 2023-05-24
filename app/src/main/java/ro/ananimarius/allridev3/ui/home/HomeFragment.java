@@ -82,6 +82,7 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.rxjava3.core.Observer;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.HttpException;
@@ -98,6 +99,7 @@ import ro.ananimarius.allridev3.Common.DirectionsResponse;
 import ro.ananimarius.allridev3.Common.Notification;
 import ro.ananimarius.allridev3.Common.PolylineData;
 import ro.ananimarius.allridev3.Common.RetrofitClient;
+import ro.ananimarius.allridev3.Common.RideDTO;
 import ro.ananimarius.allridev3.DriverHomeActivity;
 import ro.ananimarius.allridev3.Functions;
 import ro.ananimarius.allridev3.R;
@@ -147,6 +149,15 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         @GET("user/getRequestFromCustomerNotification")
         Call<Notification> getRequestFromCustomerNotification(@Query("authToken") String authToken,
                                                   @Query("idToken") String idToken);
+
+        @FormUrlEncoded
+        @POST("user/statusOfTheRequest")
+        Call<RideDTO> statusOfTheRequest(   @Field("authToken") String authToken,
+                                            @Field("idToken") String googleId,
+                                            @Field("status") boolean status,
+                                            @Field("customerId") String customerId,
+                                            @Field ("destLatitude") double destLatitude,
+                                            @Field ("destLongitude") double destLongitude);
     }
     Retrofit retrofit = new Retrofit.Builder()
             .baseUrl("http://10.0.2.2:8080")
@@ -416,6 +427,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             private int progress = 0;
             long timePassed;
             Notification nextN = null;
+            boolean notificationHasBeenAccepted=false;
             @Override
             public void run() {
                 long currentTimeMillis = System.currentTimeMillis();
@@ -424,7 +436,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     nextN = notification;
                     timePassed = currentTimeMillis - nextN.getTimeCreated();
                     if (timePassed > 6000) {
-                        declineRequest(nextN);
+                        declineRequest(nextN, notificationHasBeenAccepted);
                     }
                 }
 
@@ -443,7 +455,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 notifications.clear();
                                 chipDecline.setVisibility(View.GONE);
                                 layoutAccept.setVisibility(View.GONE);
-                                declineRequest(nextN);
+                                declineRequest(nextN, notificationHasBeenAccepted);
                             }
                         });
                         layoutAccept.setOnClickListener(new View.OnClickListener() {
@@ -451,11 +463,12 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                             public void onClick(View v) {
                                 if (!notifications.isEmpty()) {
                                     Notification notification = notifications.get(0);
-                                    //acceptRequest(notification);
+                                    statusOfTheRequest(true, notification.getCustomerId(), notification);
                                     chipDecline.setVisibility(View.GONE);
                                     layoutAccept.setVisibility(View.GONE);
                                     circularProgressBar.setProgress(0f);
                                     progress = 0;
+                                    notificationHasBeenAccepted=true;
                                 }
                             }
                         });
@@ -489,7 +502,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         timer.schedule(removeExpiredNotificationsTask, 0, 100); // run every 100 milliseconds
     }
 
-    private void declineRequest(Notification notification) {
+    private void declineRequest(Notification notification,boolean hasBeenAccepted) {
         notifications.remove(notification);
         removeAllPolylines(outsideUsingResult);
         getActivity().runOnUiThread(new Runnable() {
@@ -497,10 +510,54 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             public void run() {
                 destinationMarker.remove();
                 customerMarker.remove();
-                Toast.makeText(getContext(), "The request has been declined", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getContext(), "The request has been declined", Toast.LENGTH_SHORT).show();
             }
         });
         /////////CALL SOME KIND OF REQUEST DECLINED REQUEST
+        if(!hasBeenAccepted) {
+            statusOfTheRequest(false, notification.getCustomerId(), notification);
+        }
+    }
+    RideDTO ride=new RideDTO();
+    private void statusOfTheRequest(boolean status, String customerId, Notification notification) {
+        Call<RideDTO> call = api.statusOfTheRequest(authToken, idToken, status, customerId, notification.getDestLatitude(), notification.getDestLongitude());
+        call.enqueue(new Callback<RideDTO>() {
+            @Override
+            public void onResponse(Call<RideDTO> call, Response<RideDTO> response) {
+                if (response.isSuccessful()) {
+                    if(status==false){
+                        Toast.makeText(getContext(), "The request has been rejected!", Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        Toast.makeText(getContext(), "The request has been accepted!", Toast.LENGTH_SHORT).show();
+                        ride.setCost(response.body().getCost());
+                        ride.setCurrency(response.body().getCurrency());
+                        ride.setId(response.body().getId());
+                        ride.setDriver(response.body().getDriver());
+                        ride.setPassenger(response.body().getPassenger());
+                        ride.setRoute(response.body().getRoute());
+                    }
+                } else {
+                    Toast.makeText(getContext(), "statusOfTheRequest error: " + response.code()+"+"+response.message(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<RideDTO> call, Throwable t) {
+                int statusCode = 0;
+                String errorMessage = "";
+
+                if (t instanceof HttpException) {
+                    HttpException httpException = (HttpException) t;
+                    Response response = httpException.response();
+                    statusCode = response.code();
+                    errorMessage = response.message();
+                } else {
+                    errorMessage = t.getMessage();
+                }
+                Toast.makeText(getContext(), "Error, Status code: " + statusCode + ", Message: " + errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     //map directions api
