@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -100,6 +101,7 @@ import ro.ananimarius.allridev3.Common.Notification;
 import ro.ananimarius.allridev3.Common.PolylineData;
 import ro.ananimarius.allridev3.Common.RetrofitClient;
 import ro.ananimarius.allridev3.Common.RideDTO;
+import ro.ananimarius.allridev3.Common.WaypointDTO;
 import ro.ananimarius.allridev3.DriverHomeActivity;
 import ro.ananimarius.allridev3.Functions;
 import ro.ananimarius.allridev3.R;
@@ -151,13 +153,18 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                                   @Query("idToken") String idToken);
 
         @FormUrlEncoded
-        @POST("user/statusOfTheRequest")
-        Call<RideDTO> statusOfTheRequest(   @Field("authToken") String authToken,
+        @POST("user/changeTheStatusOfTheRequest")
+        Call<RideDTO> changeTheStatusOfTheRequest(   @Field("authToken") String authToken,
                                             @Field("idToken") String googleId,
                                             @Field("status") boolean status,
                                             @Field("customerId") String customerId,
                                             @Field ("destLatitude") double destLatitude,
                                             @Field ("destLongitude") double destLongitude);
+
+        @FormUrlEncoded
+        @POST("user/checkCurrentRide")
+        Call<RideDTO> checkCurrentRide(   @Field("authToken") String authToken,
+                                            @Field("idToken") String googleId);
     }
     Retrofit retrofit = new Retrofit.Builder()
             .baseUrl("http://10.0.2.2:8080")
@@ -227,6 +234,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
     }
 
+    private Handler handlerCheckCurrentRide;
+    private Runnable runnableCheckCurrentRide;
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         //receive the google account
@@ -255,9 +264,12 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     .apiKey(getString(R.string.google_api_key))
                     .build();
         }
+        //continuously calling the checkCurrentRide endpoint to check if there is a ride active
 
         return root;
     }
+
+
 
     @Override
     public void onDestroyView() {
@@ -324,8 +336,87 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         }
 
         mMap.setOnPolylineClickListener(this);//all the polyline clicks will be intercepted by the method
+
+        handlerCheckCurrentRide = new Handler();
+        runnableCheckCurrentRide = new Runnable() {
+            @Override
+            public void run() {
+                checkCurrentRide();
+                handler.postDelayed(this, 1000); // Schedule the Runnable to run again after 1 second
+            }
+        };
+
+        handlerCheckCurrentRide.postDelayed(runnableCheckCurrentRide, 0); // Start immediately
     }
 
+    WaypointDTO waypointDTO=new WaypointDTO();
+    private void checkCurrentRide(){
+        Call<RideDTO> call = api.checkCurrentRide(authToken, idToken);
+        call.enqueue(new Callback<RideDTO>() {
+            @Override
+            public void onResponse(Call<RideDTO> call, Response<RideDTO> response) {
+                if (response.isSuccessful()) {
+                    if (response.body() != null) {
+                        if (activeRide == false) {
+                            //AICI VOI ACTIVA BUTOANELE SA FIE VIZIBILE
+                            Toast.makeText(getContext(), "The ride is in progress!", Toast.LENGTH_SHORT).show();
+                            ride.setCost(response.body().getCost());
+                            ride.setCurrency(response.body().getCurrency());
+                            ride.setId(response.body().getId());
+                            ride.setDriver(response.body().getDriver());
+                            ride.setPassenger(response.body().getPassenger());
+                            ride.setRoute(response.body().getRoute());
+
+                            waypointDTO=(WaypointDTO) ride.getRoute();
+                            LatLng customerPosition = new LatLng(waypointDTO.getCustomerLatitude(),waypointDTO.getCustomerLongitude());
+                            customerMarkerOptions = new MarkerOptions()
+                                    .position(customerPosition)
+                                    .title("Customer")
+                                    //.snippet("Customer's Destination")
+                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+                            customerMarker = mMap.addMarker(customerMarkerOptions);
+                            //compute the directions between the driver and the customer
+                            calculateDirections(customerMarker, latitude, longitude, R.color.Blue, 0);
+                            //add a marker to the destination
+                            LatLng destinationPosition = new LatLng(waypointDTO.getDestinationLatitude(), waypointDTO.getDestinationLongitude());
+                            destinationMarkerOptions = new MarkerOptions()
+                                    .position(destinationPosition)
+                                    .title("Destination")
+                                    //.snippet("Customer's Destination")
+                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+                            destinationMarker = mMap.addMarker(destinationMarkerOptions);
+                            //compute the directions between the customer and the destination
+                            calculateDirections(destinationMarker, waypointDTO.getCustomerLatitude(),waypointDTO.getCustomerLongitude(), R.color.Red, 1);
+                            Toast.makeText(getContext(), "Request from: " + ride.getPassenger().getFirstName(), Toast.LENGTH_SHORT).show();
+                        }
+                        activeRide=true;
+                    }
+                    else {
+                        activeRide=false;
+                        Toast.makeText(getContext(), "Request rejected!", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(getContext(), "checkCurrentRide error: " + response.code()+"+"+response.message(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<RideDTO> call, Throwable t) {
+                int statusCode = 0;
+                String errorMessage = "";
+
+                if (t instanceof HttpException) {
+                    HttpException httpException = (HttpException) t;
+                    Response response = httpException.response();
+                    statusCode = response.code();
+                    errorMessage = response.message();
+                } else {
+                    errorMessage = t.getMessage();
+                }
+                Toast.makeText(getContext(), "checkCurrentRide, Status code: " + statusCode + ", Message: " + errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
     //interface appear when the driver gets a request
     @BindView(R.id.chip_decline)
@@ -421,7 +512,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         });
     }
 
-
+    boolean activeRide=false;
     private void removeNotifications() {
         TimerTask removeExpiredNotificationsTask = new TimerTask() {
             private int progress = 0;
@@ -463,12 +554,44 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                             public void onClick(View v) {
                                 if (!notifications.isEmpty()) {
                                     Notification notification = notifications.get(0);
-                                    statusOfTheRequest(true, notification.getCustomerId(), notification);
+                                    changeTheStatusOfTheRequest(true, notification.getCustomerId(), notification);
                                     chipDecline.setVisibility(View.GONE);
                                     layoutAccept.setVisibility(View.GONE);
                                     circularProgressBar.setProgress(0f);
                                     progress = 0;
                                     notificationHasBeenAccepted=true;
+                                    activeRide=true;
+                                    Intent intent=new Intent(Intent.ACTION_VIEW,
+                                            Uri.parse("google.navigation:q="+notification.getCustLatitude()+","+notification.getCustLongitude()+
+                                                    "&mode=d"));
+                                    intent.setPackage("com.google.android.apps.maps");
+                                    if(intent.resolveActivity(getContext().getPackageManager())!=null) {
+                                        startActivity(intent);
+                                    }
+                                    else {
+                                        String uri = "waze://?ll=" + latitude + "," + longitude + "&navigate=yes";
+                                        intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                                        intent.setPackage("com.waze");
+                                        if (intent.resolveActivity(getContext().getPackageManager()) != null) {
+                                            startActivity(intent);
+                                        } else {
+                                            uri = "http://maps.apple.com/?ll=" + latitude + "," + longitude;
+                                            intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                                            intent.setPackage("com.apple.maps");
+                                            if (intent.resolveActivity(getContext().getPackageManager()) != null) {
+                                                startActivity(intent);
+                                            } else {
+                                                uri = "geo:" + latitude + "," + longitude + "?z=15";
+                                                intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                                                intent.setPackage("org.openstreetmap");
+                                                if (intent.resolveActivity(getContext().getPackageManager()) != null) {
+                                                    startActivity(intent);
+                                                } else {
+                                                    Toast.makeText(getContext(), "Please install Google Maps, or use other separate GPS application!", Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         });
@@ -503,24 +626,26 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     }
 
     private void declineRequest(Notification notification,boolean hasBeenAccepted) {
-        notifications.remove(notification);
-        removeAllPolylines(outsideUsingResult);
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                destinationMarker.remove();
-                customerMarker.remove();
-                //Toast.makeText(getContext(), "The request has been declined", Toast.LENGTH_SHORT).show();
-            }
-        });
+        if(activeRide==false) {
+            notifications.remove(notification);
+            removeAllPolylines(outsideUsingResult);
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    destinationMarker.remove();
+                    customerMarker.remove();
+                    //Toast.makeText(getContext(), "The request has been declined", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
         /////////CALL SOME KIND OF REQUEST DECLINED REQUEST
         if(!hasBeenAccepted) {
-            statusOfTheRequest(false, notification.getCustomerId(), notification);
+            changeTheStatusOfTheRequest(false, notification.getCustomerId(), notification);
         }
     }
     RideDTO ride=new RideDTO();
-    private void statusOfTheRequest(boolean status, String customerId, Notification notification) {
-        Call<RideDTO> call = api.statusOfTheRequest(authToken, idToken, status, customerId, notification.getDestLatitude(), notification.getDestLongitude());
+    private void changeTheStatusOfTheRequest(boolean status, String customerId, Notification notification) {
+        Call<RideDTO> call = api.changeTheStatusOfTheRequest(authToken, idToken, status, customerId, notification.getDestLatitude(), notification.getDestLongitude());
         call.enqueue(new Callback<RideDTO>() {
             @Override
             public void onResponse(Call<RideDTO> call, Response<RideDTO> response) {
@@ -538,7 +663,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                         ride.setRoute(response.body().getRoute());
                     }
                 } else {
-                    Toast.makeText(getContext(), "statusOfTheRequest error: " + response.code()+"+"+response.message(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "changeTheStatusOfTheRequest error: " + response.code()+"+"+response.message(), Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -555,7 +680,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 } else {
                     errorMessage = t.getMessage();
                 }
-                Toast.makeText(getContext(), "Error, Status code: " + statusCode + ", Message: " + errorMessage, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "changeTheStatusOfTheRequest, Status code: " + statusCode + ", Message: " + errorMessage, Toast.LENGTH_SHORT).show();
             }
         });
     }
