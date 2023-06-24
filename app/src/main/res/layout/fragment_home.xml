@@ -12,6 +12,28 @@
         android:layout_height="match_parent"
         tools:context=".MapsActivity"/>
 
+    <Button
+        android:id="@+id/end_ride_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/end_ride"
+        android:backgroundTint="@color/black"
+        android:textColor="@color/white"
+        android:visibility="gone"
+        android:layout_margin="16dp"
+        android:layout_gravity="start|top"/>
+
+    <Button
+        android:id="@+id/cancel_ride_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/cancel_ride"
+        android:backgroundTint="@color/black"
+        android:textColor="@color/white"
+        android:visibility="gone"
+        android:layout_margin="16dp"
+        android:layout_gravity="end|top"/>
+
     <com.google.android.material.chip.Chip
         android:id="@+id/chip_decline"
         android:visibility="gone"
@@ -138,4 +160,5 @@
         </LinearLayout>
 
     </androidx.cardview.widget.CardView>
+
 </FrameLayout>

@@ -57,6 +57,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
+import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import retrofit2.Callback;
 import retrofit2.HttpException;
@@ -68,6 +69,7 @@ import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.http.FormUrlEncoded;
 import ro.ananimarius.allridev3.Common.DriverInfo;
+import ro.ananimarius.allridev3.Common.UnsafeOkHttpClient;
 
 
 public class SplashScreenActivity extends AppCompatActivity {
@@ -168,7 +170,9 @@ public class SplashScreenActivity extends AppCompatActivity {
         // this is done to save the battery life of the device
         // there are various other other criteria you can search for..
         Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        //access the fine location in order for the gps sensor to be prioritized and mock location app to work and not interfere with wifi and bluetooth locations.
+//        criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
         criteria.setPowerRequirement(Criteria.POWER_LOW);
         criteria.setAltitudeRequired(false);
         criteria.setBearingRequired(false);
@@ -253,7 +257,7 @@ public class SplashScreenActivity extends AppCompatActivity {
         @FormUrlEncoded
         @POST("user/loginByGoogle")
         Call<JsonObject> sendGoogleAccount(@Field("idToken") String idToken,
-                                             @Field("email") String email,
+                                           @Field("email") String email,
                                            @Field("familyName") String fName,
                                            @Field("givenName") String gName,
                                            @Field("isDriver") Boolean driverCheck,
@@ -267,13 +271,22 @@ public class SplashScreenActivity extends AppCompatActivity {
                 account.getGivenName(),account.getPhotoUrl());
         Toast.makeText(getApplicationContext(), driverInstance.getEmail(), Toast.LENGTH_SHORT).show();
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        //experiment
+        OkHttpClient okHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient();
+        Retrofit.Builder builder = new Retrofit.Builder()
+                .baseUrl("http://192.168.1.219:8080/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create());
+        Retrofit retrofit = builder.build();
+
+        //end experiment
+//        Retrofit retrofit = new Retrofit.Builder()
+//                .baseUrl("https://192.168.1.219:8080")
+//                .addConverterFactory(GsonConverterFactory.create())
+//                .build();
 
         APIInterface api = retrofit.create(APIInterface.class);
-        Call<JsonObject> call = api.sendGoogleAccount(account.getIdToken(), account.getEmail(), account.getFamilyName(),
+        Call<JsonObject> call = api.sendGoogleAccount(account.getId(), account.getEmail(), account.getFamilyName(),
                 account.getGivenName(), true, latitude, longitude);
         call.enqueue(new Callback<JsonObject>() {
             @Override
@@ -289,7 +302,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                     //set the cookie with the domain name
                     CookieManager cookieManager = CookieManager.getInstance();
                     cookieManager.setAcceptCookie(true);
-                    cookieManager.setCookie( "http://10.0.2.2:8080","authToken"+ jsonString);
+                    cookieManager.setCookie( "http://192.168.1.219:8080","authToken"+ jsonString);
 
                     //sync the cookies accordingly to the android version
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -305,7 +318,7 @@ public class SplashScreenActivity extends AppCompatActivity {
 
                     //check for the cookie if it exists
                     CookieManager cookieManagerCheck = CookieManager.getInstance();
-                    String cookie = cookieManagerCheck.getCookie("http://10.0.2.2:8080");
+                    String cookie = cookieManagerCheck.getCookie("http://192.168.1.219:8080");
                     if (cookie != null) {
                         //the cookie exists
                         Log.d("COOKIE", "authToken value: " + cookie);

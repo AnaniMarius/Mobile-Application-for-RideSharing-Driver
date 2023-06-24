@@ -42,6 +42,7 @@
 
         <activity
             android:name=".DriverHomeActivity"
+            android:screenOrientation="portrait"
             android:exported="false"
             android:label="@string/title_activity_driver_home"
             android:theme="@style/Theme.AllRideV3.NoActionBar">
@@ -51,6 +52,7 @@
         </activity>
         <activity
             android:name=".SomethingSomething"
+            android:screenOrientation="portrait"
             android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
@@ -58,6 +60,7 @@
         </activity>
         <activity
             android:name=".SplashScreenActivity"
+            android:screenOrientation="portrait"
             android:exported="true"
             android:theme="@style/SplashTheme">
             <intent-filter>

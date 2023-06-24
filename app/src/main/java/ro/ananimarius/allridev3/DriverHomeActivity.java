@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
 import android.view.ViewTreeObserver;
@@ -22,11 +23,13 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 import com.google.gson.JsonObject;
-import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
+
+import okhttp3.OkHttpClient;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
@@ -42,17 +45,20 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.sql.Driver;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.Body;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 import ro.ananimarius.allridev3.Common.DriverInfo;
+import ro.ananimarius.allridev3.Common.UnsafeOkHttpClient;
 import ro.ananimarius.allridev3.databinding.ActivityDriverHomeBinding;
 
 public class DriverHomeActivity extends AppCompatActivity {
@@ -67,9 +73,14 @@ public class DriverHomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = ActivityDriverHomeBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
+        try {
+            binding = ActivityDriverHomeBinding.inflate(getLayoutInflater());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (binding != null) {
+            setContentView(binding.getRoot());
+        }
         setSupportActionBar(binding.appBarDriverHome.toolbar);
 
         drawer = binding.drawerLayout;
@@ -90,31 +101,36 @@ public class DriverHomeActivity extends AppCompatActivity {
 
 
         Bundle bundle = new Bundle();
-        bundle.putString("googleId", account.getIdToken());
+        bundle.putString("googleId", account.getId());
         bundle.putString("email", account.getEmail());
         navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_driver_home);
         navController.setGraph(R.navigation.mobile_navigation, bundle);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
-//        navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_driver_home);
-//        NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
-//        NavigationUI.setupWithNavController(navigationView, navController);
+        navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                // Handle navigation item selection here
+                return true;
+            }
+        });
+        View header= navigationView.getHeaderView(0);
+        TextView txtName = header.findViewById(R.id.txt_name);
+        TextView txtStar = header.findViewById(R.id.txt_star);
+        TextView txtPhone = header.findViewById(R.id.txt_phone);
 
-        //set data for user
-//        View headerView=navigationView.getHeaderView(0);
-//        TextView txt_name=(TextView) headerView.findViewById(R.id.txt_name);
-//        TextView txt_phone=(TextView) headerView.findViewById(R.id.txt_phone);
-//        TextView txt_star=(TextView) headerView.findViewById(R.id.txt_star);
-
-        //txt_name.setText(DriverInfo.buildWelcomeMessage());
+        txtStar.setText("3.5"); // Replace with the actual value
+        txtName.setText(account.getFamilyName()+" "+account.getGivenName()); // Replace with the actual value
+        txtPhone.setText("0730657538");
 
         init();
     }
 
 private String getAuthTokenCookie(){ //SEARCH FOR THE COOKIE TO BE SENT TO THE API
     CookieManager cookieManagerCheck = CookieManager.getInstance();
-    String cookie = cookieManagerCheck.getCookie("http://10.0.2.2:8080");
+    String cookie = cookieManagerCheck.getCookie("http://192.168.1.219:8080");
     if (cookie != null) {
         //the cookie exists
         Log.d("COOKIE_GET", "authToken value: " + cookie);
@@ -129,14 +145,14 @@ private String getAuthTokenCookie(){ //SEARCH FOR THE COOKIE TO BE SENT TO THE A
 
 private void deleteCookie(){ //delete cookie from the client
     CookieManager cookieManagerCheck = CookieManager.getInstance();
-    String cookie = cookieManagerCheck.getCookie("http://10.0.2.2:8080");
+    String cookie = cookieManagerCheck.getCookie("http://192.168.1.219:8080");
     if (cookie != null) {
         // The cookie exists
         Log.d("COOKIE_DELETED", "authToken value: " + cookie);
         //Toast.makeText(getApplicationContext(), "Cookie found has been deleted ", Toast.LENGTH_SHORT).show();
 
         //delete the cookie
-        cookieManagerCheck.setCookie("http://10.0.2.2:8080", "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        cookieManagerCheck.setCookie("http://192.168.1.219:8080", "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             cookieManagerCheck.flush();
         } else {
@@ -181,46 +197,111 @@ private void init() {
     });
 }
 
-    class SignOutTask extends AsyncTask<Void, Void, Boolean> { //SEND THE AUTHTOKEN BACK TO DELETE IT
+
+    public interface APIInterface {
+        @POST("user/signout")
+        Call<JsonObject> signout(@Body String authToken);
+    }
+    class SignOutTask extends AsyncTask<Void, Void, Boolean> {
         @Override
         protected Boolean doInBackground(Void... params) {
             String authToken = getAuthTokenCookie();
-            //try to parse
-            String authTokenParsed=null;
+            // try to parse
+            String authTokenParsed = null;
             try {
                 JSONObject jsonObject = new JSONObject(authToken.substring(9));
                 authTokenParsed = jsonObject.getString("authToken");
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            String url = "http://10.0.2.2:8080/user/signout?authToken=" + authTokenParsed;
-            try {
-                HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-                connection.setRequestMethod("POST");
-                int responseCode = connection.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    deleteCookie();
-                    return true;
+
+            OkHttpClient okHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient();
+            Retrofit.Builder builder = new Retrofit.Builder()
+                    .baseUrl("http://192.168.1.219:8080/")
+                    .client(okHttpClient)
+                    .addConverterFactory(GsonConverterFactory.create());
+            Retrofit retrofit = builder.build();
+            APIInterface api = retrofit.create(APIInterface.class);
+            Call<JsonObject> call = api.signout(authTokenParsed); // Assuming your APIInterface has a "signout" method
+
+            call.enqueue(new Callback<JsonObject>() {
+                @Override
+                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                    int responseCode = response.code();
+
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        deleteCookie();
+                        onPostExecute(true);
+                    } else {
+                        onPostExecute(false);
+                    }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return false;
+
+                @Override
+                public void onFailure(Call<JsonObject> call, Throwable t) {
+                    t.printStackTrace();
+                    onPostExecute(false);
+                }
+            });
+
+            return null;
         }
 
         @Override
         protected void onPostExecute(Boolean result) {
-            //handle the result of the API request
-            if (result) {
+            // handle the result of the API request
+            if (result != null && result.booleanValue()) {
                 Intent intent = new Intent(DriverHomeActivity.this, SplashScreenActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 finish();
             } else {
-                //handle unsuccessful response
+                // handle unsuccessful response
             }
         }
+
     }
+
+//    class SignOutTask extends AsyncTask<Void, Void, Boolean> { //SEND THE AUTHTOKEN BACK TO DELETE IT
+//        @Override
+//        protected Boolean doInBackground(Void... params) {
+//            String authToken = getAuthTokenCookie();
+//            //try to parse
+//            String authTokenParsed=null;
+//            try {
+//                JSONObject jsonObject = new JSONObject(authToken.substring(9));
+//                authTokenParsed = jsonObject.getString("authToken");
+//            } catch (JSONException e) {
+//                e.printStackTrace();
+//            }
+//            String url = "http://10.0.2.2:8080/user/signout?authToken=" + authTokenParsed;
+//            try {
+//                HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+//                connection.setRequestMethod("POST");
+//                int responseCode = connection.getResponseCode();
+//                if (responseCode == HttpURLConnection.HTTP_OK) {
+//                    deleteCookie();
+//                    return true;
+//                }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            return false;
+//        }
+//
+//        @Override
+//        protected void onPostExecute(Boolean result) {
+//            //handle the result of the API request
+//            if (result) {
+//                Intent intent = new Intent(DriverHomeActivity.this, SplashScreenActivity.class);
+//                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                startActivity(intent);
+//                finish();
+//            } else {
+//                //handle unsuccessful response
+//            }
+//        }
+//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
