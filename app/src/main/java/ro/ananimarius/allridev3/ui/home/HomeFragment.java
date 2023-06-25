@@ -189,6 +189,11 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                           @Field("customerId") String customerId,
                                           @Field("endRide") boolean endRide,
                                           @Field("cancelRide") boolean cancelRide);
+        @FormUrlEncoded
+        @POST("user/changeDutyStatus")
+        Call<Void> changeDutyStatus(@Field("authToken") String authToken,
+                                    @Field("driverId") String driverId,
+                                    @Field("status") Boolean status);
     }
 //    Retrofit retrofit = new Retrofit.Builder()
 //            .baseUrl("http://10.0.2.2:8080")
@@ -987,6 +992,34 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             }
         }
     }
+
+    private void changeDutyStatus(Boolean status) {
+        Call<Void> call = api.changeDutyStatus(authToken,idToken,false);
+        try {
+            Functions func = new Functions();
+            authToken = func.getAuthTokenCookie();
+            authToken = func.parseCookie(authToken);
+            call.enqueue(new Callback<Void>() {
+                @Override
+                public void onResponse(Call<Void> call, Response<Void> response) {
+
+                }
+
+                @Override
+                public void onFailure(Call<Void> call, Throwable t) {
+
+                }
+            });
+        } finally {
+
+        }
+    }
+
+    //    @Override
+//    public void onStop() {
+//        super.onStop();
+//        changeDutyStatus(false);
+//    }
 
 //    String custLoc;
 //    String destLoc;
