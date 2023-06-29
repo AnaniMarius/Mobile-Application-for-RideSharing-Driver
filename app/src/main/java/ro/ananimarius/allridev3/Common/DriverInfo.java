@@ -4,7 +4,7 @@ import android.net.Uri;
 
 import com.google.android.gms.maps.model.LatLng;
 
-public class DriverInfo {
+public class DriverInfo implements Cloneable{
     public String accId;
     public String email;
     public String familyName;

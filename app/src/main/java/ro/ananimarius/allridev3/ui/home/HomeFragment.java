@@ -69,6 +69,8 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 import com.mikhaellopez.circularprogressbar.CircularProgressBar;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -428,12 +430,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
-                            ride.setCost(response.body().getCost());
-                            ride.setCurrency(response.body().getCurrency());
-                            ride.setId(response.body().getId());
-                            ride.setDriver(response.body().getDriver());
-                            ride.setPassenger(response.body().getPassenger());
-                            ride.setRoute(response.body().getRoute());
+                            ride=response.body().clone();
 
                             route = ride.getRoute();
                             if (route != null && !route.isEmpty()) {
@@ -446,7 +443,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
                                 customerMarker = mMap.addMarker(customerMarkerOptions);
                                 //compute the directions between the driver and the customer
-                                calculateDirections(customerMarker, latitude, longitude, R.color.Blue, 0);
+                                calculateDirections(customerMarker, latitude, longitude, R.color.Blue, 0,ride);
                                 //add a marker to the destination
                                 LatLng destinationPosition = new LatLng(waypointDTO.getDestinationLatitude(), waypointDTO.getDestinationLongitude());
                                 destinationMarkerOptions = new MarkerOptions()
@@ -456,7 +453,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
                                 destinationMarker = mMap.addMarker(destinationMarkerOptions);
                                 //compute the directions between the customer and the destination
-                                calculateDirections(destinationMarker, waypointDTO.getCustomerLatitude(), waypointDTO.getCustomerLongitude(), R.color.Red, 1);
+                                calculateDirections(destinationMarker, waypointDTO.getCustomerLatitude(), waypointDTO.getCustomerLongitude(), R.color.Red, 1,ride);
                                 try{
                                     Toast.makeText(getContext(), "Request from: " + ride.getPassenger().getFirstName(), Toast.LENGTH_SHORT).show();
                                 } catch (Exception e) {
@@ -464,18 +461,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 }
                             }
                         }
-                        ride.setCost(response.body().getCost());
-                        ride.setCurrency(response.body().getCurrency());
-                        ride.setId(response.body().getId());
-                        ride.setDriver(response.body().getDriver());
-                        ride.setPassenger(response.body().getPassenger());
-                        ride.setRoute(response.body().getRoute());
-                        ride.setCustomerCancelsRide(response.body().isCustomerCancelsRide());
-                        ride.setDriverCancelsRide(response.body().isDriverCancelsRide());
-                        ride.setCustomerEndsRide(response.body().isCustomerEndsRide());
-                        ride.setDriverEndsRide(response.body().isDriverEndsRide());
-                        ride.setNearCustomer(response.body().isNearCustomer());
-                        ride.setNearDestination(response.body().isNearDestination());
+                        ride=response.body().clone();
                         route = ride.getRoute();
 
 
@@ -594,6 +580,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     TextView txt_estimate_time;
     @BindView(R.id.txt_estimate_distance)
     TextView txt_estimate_distance;
+    @BindView(R.id.txt_rating)
+    TextView txt_rating;
     @BindView(R.id.countDown)
     TextView countDown;
 
@@ -629,7 +617,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 @Override
                 public void onResponse(Call<Notification> call, Response<Notification> response) {
                     if (response.isSuccessful()) {
-                        Notification notification = response.body();
+                        Notification notification = response.body().clone();
                         Chip chipDecline = getView().findViewById(R.id.chip_decline);
                         CardView layoutAccept = getView().findViewById(R.id.layout_accept);
 
@@ -647,7 +635,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
                             customerMarker = mMap.addMarker(customerMarkerOptions);
                             //compute the directions between the driver and the customer
-                            calculateDirections(customerMarker, latitude, longitude, R.color.Blue, 0);
+                            calculateDirections(customerMarker, latitude, longitude, R.color.Blue, 0,notification.getInformativeRide());
                             //add a marker to the destination
                             LatLng destinationPosition = new LatLng(notification.getDestLatitude(), notification.getDestLongitude());
                             destinationMarkerOptions = new MarkerOptions()
@@ -657,7 +645,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
                             destinationMarker = mMap.addMarker(destinationMarkerOptions);
                             //compute the directions between the customer and the destination
-                            calculateDirections(destinationMarker, notification.getCustLatitude(), notification.getCustLongitude(), R.color.Red, 1);
+                            calculateDirections(destinationMarker, notification.getCustLatitude(), notification.getCustLongitude(), R.color.Red, 1,notification.getInformativeRide());
                             Toast.makeText(getContext(), "Request from: " + notification.getCustomerFirstName(), Toast.LENGTH_SHORT).show();
                             notifications.add(notification);
                         } else if (chipDecline != null && layoutAccept != null) {
@@ -692,7 +680,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 for (Notification notification : notificationsCopy) {
                     nextN = notification;
                     timePassed = currentTimeMillis - nextN.getTimeCreated();
-                    if (timePassed > 6000) {
+                    if (timePassed > 10000) {
                         declineRequest(nextN, notificationHasBeenAccepted);
                     }
                 }
@@ -707,7 +695,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 CircularProgressBar circularProgressBar = getView().findViewById(R.id.circularProgressBar);
                                 TextView countdown = getView().findViewById(R.id.countDown);
 
-                                //if the decline is pressed, remove the interface
+                                //if the Just as in the customer system,  is pressed, remove the interface
                                 chipDecline.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
@@ -737,7 +725,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 
                                 if (!notifications.isEmpty()) {
                                     // Display countdown from 6 to 0 seconds
-                                    int secondsLeft = 6 - (int) ((currentTimeMillis - notifications.get(0).getTimeCreated()) / 1000);
+                                    int secondsLeft = 10 - (int) ((currentTimeMillis - notifications.get(0).getTimeCreated()) / 1000);
                                     countdown.setText(String.valueOf(secondsLeft));
                                     circularProgressBar.setProgress((float) progress / 100);
                                     progress++;
@@ -768,7 +756,10 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     private void declineRequest(Notification notification,boolean hasBeenAccepted) {
         if (notification != null) {
             if (activeRide == false) {
-                notifications.remove(notification);
+                try {
+                    notifications.remove(notification);
+                } finally {
+                }
                 removeAllPolylines(outsideUsingResult);
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
@@ -797,12 +788,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                             Toast.makeText(getContext(), "The request has been rejected!", Toast.LENGTH_SHORT).show();
                         } else {
                             Toast.makeText(getContext(), "The request has been accepted!", Toast.LENGTH_SHORT).show();
-                            ride.setCost(response.body().getCost());
-                            ride.setCurrency(response.body().getCurrency());
-                            ride.setId(response.body().getId());
-                            ride.setDriver(response.body().getDriver());
-                            ride.setPassenger(response.body().getPassenger());
-                            ride.setRoute(response.body().getRoute());
+                            ride=response.body().clone();
                         }
                     } else {
                         Toast.makeText(getContext(), "changeTheStatusOfTheRequest error: " + response.code() + "+" + response.message(), Toast.LENGTH_SHORT).show();
@@ -832,7 +818,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 
     private GeoApiContext mGeoApiContext=null;
     DirectionsResult outsideUsingResult=null;
-    private void calculateDirections(Marker marker, Double auxLatitude, Double auxLongitude, int polyLineColor, int index){
+    private void calculateDirections(Marker marker, Double auxLatitude, Double auxLongitude, int polyLineColor, int index, RideDTO ride){
         Log.d(TAG, "calculateDirections: calculating directions.");
 
         com.google.maps.model.LatLng destination = new com.google.maps.model.LatLng(
@@ -864,13 +850,19 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        txt_estimate_time = getView().findViewById(R.id.txt_estimate_time);
-                        if (tripDurations[0]!=0 && tripDurations[1]!=0) {
-                            txt_estimate_time.setText(String.valueOf((int)(tripDurations[0]+tripDurations[1])/60)+" min");
-                        }
-                        txt_estimate_distance=getView().findViewById(R.id.txt_estimate_distance);
-                        if(tripDistances[0]!=0 && tripDistances[1]!=0){
-                            txt_estimate_distance.setText(String.valueOf((float)(tripDistances[0]+tripDistances[1])/1000)+ " km");
+                        try {
+                            txt_estimate_time = getView().findViewById(R.id.txt_estimate_time);
+                            if (tripDurations[0] != 0 && tripDurations[1] != 0) {
+                                txt_estimate_time.setText(String.valueOf((BigDecimal) ride.getCurrentRideTotalTime().setScale(2, RoundingMode.HALF_UP) + " min"));
+                            }
+                            txt_estimate_distance = getView().findViewById(R.id.txt_estimate_distance);
+                            if (tripDistances[0] != 0 && tripDistances[1] != 0) {
+                                txt_estimate_distance.setText(String.valueOf(String.format("%.2f", (double) ride.getCurrentRideTotalDistance()) + " km"));
+                            }
+                            txt_rating = getView().findViewById(R.id.txt_rating);
+                            txt_rating.setText(String.valueOf((BigDecimal) ride.getCurrentRidePrice().setScale(2, RoundingMode.HALF_UP)));
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                 });

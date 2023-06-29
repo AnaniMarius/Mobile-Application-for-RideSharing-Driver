@@ -1,6 +1,6 @@
 package ro.ananimarius.allridev3.Common;
 
-public class Notification {
+public class Notification implements Cloneable{
     private String customerId;
     private String driverId;
     private String customerFirstName;
@@ -14,6 +14,23 @@ public class Notification {
     //customer photo uri
     //customer rating
     private long timeCreated;
+    private RideDTO informativeRide;
+
+    public boolean isRead() {
+        return isRead;
+    }
+
+    public void setRead(boolean read) {
+        isRead = read;
+    }
+
+    public RideDTO getInformativeRide() {
+        return informativeRide;
+    }
+
+    public void setInformativeRide(RideDTO informativeRide) {
+        this.informativeRide = informativeRide;
+    }
 
     public String getCustomerId() {
         return customerId;
@@ -87,11 +104,11 @@ public class Notification {
         this.destLongitude = destLongitude;
     }
 
-    public boolean isRead() {
+    public boolean getIsRead() {
         return isRead;
     }
 
-    public void setRead(boolean read) {
+    public void setIsRead(boolean read) {
         isRead = read;
     }
     public long getTimeCreated() {
@@ -113,5 +130,27 @@ public class Notification {
         this.destLongitude = destLongitude;
         this.isRead = false;
         this.timeCreated = System.currentTimeMillis();
+    }
+    @Override
+    public Notification clone() {
+        try {
+            Notification clone = (Notification) super.clone();
+            clone.customerId = this.customerId;
+            clone.driverId = this.driverId;
+            clone.customerFirstName = this.customerFirstName;
+            clone.customerLastName = this.customerLastName;
+            clone.custLatitude = this.custLatitude;
+            clone.custLongitude = this.custLongitude;
+            clone.destLatitude = this.destLatitude;
+            clone.destLongitude = this.destLongitude;
+            clone.isRead = this.isRead;
+            clone.timeoutSeconds = this.timeoutSeconds;
+            clone.timeCreated = this.timeCreated;
+            clone.informativeRide = (this.informativeRide != null) ? this.informativeRide.clone() : null;
+
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException("The Notification object could not be cloned.", e);
+        }
     }
 }

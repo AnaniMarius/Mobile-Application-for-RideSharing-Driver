@@ -1,9 +1,10 @@
 package ro.ananimarius.allridev3.Common;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.Set;
 
-public class RideDTO {
+public class RideDTO implements Cloneable{
     private Long id;
     private UserDTO passenger;
     private UserDTO driver;
@@ -16,6 +17,33 @@ public class RideDTO {
     private boolean customerCancelsRide=false;
     private boolean driverEndsRide=false;
     private boolean driverCancelsRide=false;
+    private BigDecimal currentRidePrice;
+    private Double currentRideTotalDistance;
+    private BigDecimal currentRideTotalTime;
+
+    public Double getCurrentRideTotalDistance() {
+        return currentRideTotalDistance;
+    }
+
+    public void setCurrentRideTotalDistance(Double currentRideTotalDistance) {
+        this.currentRideTotalDistance = currentRideTotalDistance;
+    }
+
+    public BigDecimal getCurrentRideTotalTime() {
+        return currentRideTotalTime;
+    }
+
+    public void setCurrentRideTotalTime(BigDecimal currentRideTotalTime) {
+        this.currentRideTotalTime = currentRideTotalTime;
+    }
+
+    public BigDecimal getCurrentRidePrice() {
+        return currentRidePrice;
+    }
+
+    public void setCurrentRidePrice(BigDecimal currentRidePrice) {
+        this.currentRidePrice = currentRidePrice;
+    }
 
     public RideDTO(Long id, UserDTO passenger, UserDTO driver, Set<WaypointDTO> route, BigDecimal cost, String currency, boolean nearDestination, boolean nearCustomer, boolean customerEndsRide, boolean customerCancelsRide, boolean driverEndsRide, boolean driverCancelsRide) {
         this.id = id;
@@ -130,5 +158,35 @@ public class RideDTO {
     public void setNearCustomer(boolean nearCustomer) {
         this.nearCustomer = nearCustomer;
     }
+    @Override
+    public RideDTO clone() {
+        try {
+            RideDTO clone = (RideDTO) super.clone();
+            clone.id = this.id;
+            clone.passenger = this.getPassenger().clone();
+            clone.driver = this.getDriver().clone();
+            clone.cost = this.cost;
+            clone.currency = this.currency;
+            clone.nearDestination = this.nearDestination;
+            clone.nearCustomer = this.nearCustomer;
+            clone.customerEndsRide = this.customerEndsRide;
+            clone.customerCancelsRide = this.customerCancelsRide;
+            clone.driverEndsRide = this.driverEndsRide;
+            clone.driverCancelsRide = this.driverCancelsRide;
+            clone.currentRidePrice = this.currentRidePrice;
+            clone.currentRideTotalDistance = this.currentRideTotalDistance;
+            clone.currentRideTotalTime = this.currentRideTotalTime;
 
+            // Cloning Set<WaypointDTO>
+            Set<WaypointDTO> clonedRoute = new HashSet<>();
+            for(WaypointDTO waypoint : this.route){
+                clonedRoute.add(waypoint.clone());
+            }
+            clone.route = clonedRoute;
+
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException("The RideDTO object could not be cloned.", e);
+        }
+    }
 }

@@ -2,7 +2,7 @@ package ro.ananimarius.allridev3.Common;
 
 import android.graphics.Point;
 
-public class UserDTO {
+public class UserDTO implements Cloneable{
     private long id;
     private String firstName;
     private String lastName;
@@ -45,7 +45,6 @@ public class UserDTO {
         this.longitude = longitude;
         this.direction = direction;
     }
-
 
     // Getters and Setters
 
@@ -191,5 +190,38 @@ public class UserDTO {
 
     public void setDirection(float direction) {
         this.direction = direction;
+    }
+
+    @Override
+    public UserDTO clone() {
+        try {
+            UserDTO clone = (UserDTO) super.clone();
+            clone.id = this.id;
+            clone.firstName = this.firstName;
+            clone.lastName = this.lastName;
+            // clone avatar byte array
+            if (this.avatar != null) {
+                clone.avatar = this.avatar.clone();
+            }
+            clone.phone = this.phone;
+            clone.email = this.email;
+            clone.password = this.password;
+            clone.facebookId = this.facebookId;
+            clone.googleId = this.googleId;
+            clone.driver = this.driver;
+            clone.car = this.car;
+            if (this.location != null) {
+                clone.location = new Point(this.location);
+            }
+            clone.hailing = this.hailing;
+            clone.assignedUser = this.assignedUser;
+            clone.currentRating = this.currentRating;
+            clone.latitude = this.latitude;
+            clone.longitude = this.longitude;
+            clone.direction = this.direction;
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new RuntimeException("The UserDTO object could not be cloned.", e);
+        }
     }
 }
