@@ -135,27 +135,44 @@
                     android:textSize="18sp"/>
 
             </LinearLayout>
-
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/txt_estimate_time"
+                android:id="@+id/txt_price"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="8dp"
                 android:fontFamily="@font/uber_move_bold"
-                android:text="69 min"
+                android:text="112 lei"
                 android:textColor="@android:color/white"
                 android:textSize="20sp"/>
-
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:id="@+id/txt_estimate_distance"
+                android:orientation="horizontal"
                 android:layout_gravity="center_horizontal"
-                android:fontFamily="@font/uber_move"
-                android:text="69.420 km"
-                android:textColor="@android:color/white"
-                android:textSize="16sp"/>
+                android:layout_marginTop="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/txt_estimate_time"
+                    android:fontFamily="@font/uber_move"
+                    android:text="69 min"
+                    android:textColor="@android:color/white"
+                    android:textSize="20sp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/txt_estimate_distance"
+                    android:layout_marginLeft="10dp"
+                    android:fontFamily="@font/uber_move"
+                    android:text="69.420 km"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"/>
+
+            </LinearLayout>
+
 
         </LinearLayout>
 

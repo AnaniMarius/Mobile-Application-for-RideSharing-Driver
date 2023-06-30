@@ -584,6 +584,10 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     TextView txt_rating;
     @BindView(R.id.countDown)
     TextView countDown;
+    @BindView(R.id.txt_type_uber)
+    TextView txt_type_uber;
+    @BindView(R.id.txt_price)
+    TextView txt_price;
 
     //CHECK THE NOTIFICATIONS
     private Handler handler = new Handler();
@@ -677,12 +681,16 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             public void run() {
                 long currentTimeMillis = System.currentTimeMillis();
                 List<Notification> notificationsCopy = new ArrayList<>(notifications);
-                for (Notification notification : notificationsCopy) {
-                    nextN = notification;
-                    timePassed = currentTimeMillis - nextN.getTimeCreated();
-                    if (timePassed > 10000) {
-                        declineRequest(nextN, notificationHasBeenAccepted);
+                try {
+                    for (Notification notification : notificationsCopy) {
+                        nextN = notification;
+                        timePassed = currentTimeMillis - nextN.getTimeCreated();
+                        if (timePassed > 10000) {
+                            declineRequest(nextN, notificationHasBeenAccepted);
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
 
                 if (getActivity() != null && isAdded()) {
@@ -757,7 +765,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         if (notification != null) {
             if (activeRide == false) {
                 try {
-                    notifications.remove(notification);
+                    if(notification!=null) {
+                        notifications.remove(notification);
+                    }
                 } finally {
                 }
                 removeAllPolylines(outsideUsingResult);
@@ -851,16 +861,20 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     @Override
                     public void run() {
                         try {
+                            txt_type_uber=getView().findViewById(R.id.txt_type_uber);
+                            txt_type_uber.setText(String.valueOf(ride.getPassenger().getFirstName()+"\n"+ride.getPassenger().getLastName()));
                             txt_estimate_time = getView().findViewById(R.id.txt_estimate_time);
                             if (tripDurations[0] != 0 && tripDurations[1] != 0) {
-                                txt_estimate_time.setText(String.valueOf((BigDecimal) ride.getCurrentRideTotalTime().setScale(2, RoundingMode.HALF_UP) + " min"));
+                                txt_estimate_time.setText(String.valueOf((BigDecimal) (ride.getCurrentRideTotalTime().divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP))+" min"));
                             }
                             txt_estimate_distance = getView().findViewById(R.id.txt_estimate_distance);
                             if (tripDistances[0] != 0 && tripDistances[1] != 0) {
-                                txt_estimate_distance.setText(String.valueOf(String.format("%.2f", (double) ride.getCurrentRideTotalDistance()) + " km"));
+                                txt_estimate_distance.setText(String.valueOf(String.format("%.2f", (double) ride.getCurrentRideTotalDistance()/1000) + " km"));
                             }
                             txt_rating = getView().findViewById(R.id.txt_rating);
-                            txt_rating.setText(String.valueOf((BigDecimal) ride.getCurrentRidePrice().setScale(2, RoundingMode.HALF_UP)));
+                            txt_rating.setText(String.valueOf(3.8/*(BigDecimal) ride.getCurrentRidePrice().divide(BigDecimal.valueOf(60)).setScale(2, RoundingMode.HALF_UP)*/));
+                            txt_price=getView().findViewById(R.id.txt_price);
+                            txt_price.setText(String.valueOf(ride.getCurrentRidePrice().setScale(2, RoundingMode.HALF_UP)));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -952,15 +966,17 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
     private void turnByTurnDirections(){
         Notification notification = notifications.get(0);
         Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("google.navigation:q=" + notification.getDestLatitude() + "," + notification.getDestLongitude() +
-                        "+to:" + notification.getDestLatitude() + "," + notification.getDestLongitude() +
-                        //"+to:" + notification.getDestLatitude() + "," + notification.getDestLongitude() +
+                Uri.parse("google.navigation:q="+notification.getCustLatitude()+","+notification.getCustLongitude()+
                         "&mode=d"));
+        intent.setPackage("com.google.android.apps.maps");
+        if(intent.resolveActivity(getContext().getPackageManager())!=null) {
+            startActivity(intent);
+        }
         intent.setPackage("com.google.android.apps.maps");
         if (intent.resolveActivity(getContext().getPackageManager()) != null) {
             startActivity(intent);
         } else {
-            String uri = "waze://?ll=" + latitude + "," + longitude + "&navigate=yes";
+            String uri = "waze://?ll=" + notification.getCustLatitude() + "," + notification.getCustLongitude() + "&navigate=yes";
             intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
             intent.setPackage("com.waze");
             if (intent.resolveActivity(getContext().getPackageManager()) != null) {
