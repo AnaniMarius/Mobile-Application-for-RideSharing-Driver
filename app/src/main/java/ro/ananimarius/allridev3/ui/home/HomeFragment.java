@@ -455,7 +455,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 //compute the directions between the customer and the destination
                                 calculateDirections(destinationMarker, waypointDTO.getCustomerLatitude(), waypointDTO.getCustomerLongitude(), R.color.Red, 1,ride);
                                 try{
-                                    Toast.makeText(getContext(), "Request from: " + ride.getPassenger().getFirstName(), Toast.LENGTH_SHORT).show();
+                                    //Toast.makeText(getContext(), "Request from: " + ride.getPassenger().getFirstName(), Toast.LENGTH_SHORT).show();
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -650,7 +650,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                             destinationMarker = mMap.addMarker(destinationMarkerOptions);
                             //compute the directions between the customer and the destination
                             calculateDirections(destinationMarker, notification.getCustLatitude(), notification.getCustLongitude(), R.color.Red, 1,notification.getInformativeRide());
-                            Toast.makeText(getContext(), "Request from: " + notification.getCustomerFirstName(), Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(getContext(), "Request from: " + notification.getCustomerFirstName(), Toast.LENGTH_SHORT).show();
                             notifications.add(notification);
                         } else if (chipDecline != null && layoutAccept != null) {
                             chipDecline.setVisibility(View.GONE);
@@ -776,11 +776,9 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     public void run() {
                         destinationMarker.remove();
                         customerMarker.remove();
-                        //Toast.makeText(getContext(), "The request has been declined", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
-            /////////CALL SOME KIND OF REQUEST DECLINED REQUEST
             if (!hasBeenAccepted) {
                 changeTheStatusOfTheRequest(false, notification.getCustomerId(), notification);
             }
@@ -818,7 +816,8 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     } else {
                         errorMessage = t.getMessage();
                     }
-                    Toast.makeText(getContext(), "changeTheStatusOfTheRequest, Status code: " + statusCode + ", Message: " + errorMessage, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "The request has been declined!", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getContext(), "changeTheStatusOfTheRequest, Status code: " + statusCode + ", Message: " + errorMessage, Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -874,7 +873,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                             txt_rating = getView().findViewById(R.id.txt_rating);
                             txt_rating.setText(String.valueOf(3.8/*(BigDecimal) ride.getCurrentRidePrice().divide(BigDecimal.valueOf(60)).setScale(2, RoundingMode.HALF_UP)*/));
                             txt_price=getView().findViewById(R.id.txt_price);
-                            txt_price.setText(String.valueOf(ride.getCurrentRidePrice().setScale(2, RoundingMode.HALF_UP)));
+                            txt_price.setText(String.valueOf(ride.getCurrentRidePrice().setScale(2, RoundingMode.HALF_UP)+" lei"));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -907,7 +906,6 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             @Override
             public void run() {
                 Log.d(TAG, "run: result routes: " + result.routes.length);
-
                 if(mPolyLinesData.size() > 1){
                     for(PolylineData polylineData: mPolyLinesData){
                         polylineData.getPolyline().remove();
@@ -915,24 +913,18 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     mPolyLinesData.clear();
                     mPolyLinesData = new ArrayList<>();
                 }
-
                 for(DirectionsRoute route: result.routes){
                     Log.d(TAG, "run: leg: " + route.legs[0].toString());
                     List<com.google.maps.model.LatLng> decodedPath = PolylineEncoding.decode(route.overviewPolyline.getEncodedPath());
 
                     List<LatLng> newDecodedPath = new ArrayList<>();
-
                     // This loops through all the LatLng coordinates of ONE polyline.
                     for(com.google.maps.model.LatLng latLng: decodedPath){
-
-//                        Log.d(TAG, "run: latlng: " + latLng.toString());
-
                         newDecodedPath.add(new LatLng(
                                 latLng.lat,
                                 latLng.lng
                         ));
                     }
-
                     Polyline polyline = mMap.addPolyline(new PolylineOptions().addAll(newDecodedPath));
                     polyline.setColor(ContextCompat.getColor(getActivity(), polyLineColor));
                     polyline.setClickable(true);
@@ -963,15 +955,11 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
         }
     }
 
-    private void turnByTurnDirections(){
+    private void turnByTurnDirections() {
         Notification notification = notifications.get(0);
         Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("google.navigation:q="+notification.getCustLatitude()+","+notification.getCustLongitude()+
+                Uri.parse("google.navigation:q=" + notification.getCustLatitude() + "," + notification.getCustLongitude() +
                         "&mode=d"));
-        intent.setPackage("com.google.android.apps.maps");
-        if(intent.resolveActivity(getContext().getPackageManager())!=null) {
-            startActivity(intent);
-        }
         intent.setPackage("com.google.android.apps.maps");
         if (intent.resolveActivity(getContext().getPackageManager()) != null) {
             startActivity(intent);
@@ -982,24 +970,12 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             if (intent.resolveActivity(getContext().getPackageManager()) != null) {
                 startActivity(intent);
             } else {
-                uri = "http://maps.apple.com/?ll=" + latitude + "," + longitude;
-                intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-                intent.setPackage("com.apple.maps");
-                if (intent.resolveActivity(getContext().getPackageManager()) != null) {
-                    startActivity(intent);
-                } else {
-                    uri = "geo:" + latitude + "," + longitude + "?z=15";
-                    intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-                    intent.setPackage("org.openstreetmap");
-                    if (intent.resolveActivity(getContext().getPackageManager()) != null) {
-                        startActivity(intent);
-                    } else {
-                        Toast.makeText(getContext(), "Please install Google Maps, or use other separate GPS application!", Toast.LENGTH_SHORT).show();
-                    }
-                }
+                Toast.makeText(getContext(), "Please install Google Maps, or use other separate GPS application!", Toast.LENGTH_SHORT).show();
             }
         }
     }
+
+
 
     private void changeDutyStatus(Boolean status) {
         Call<Void> call = api.changeDutyStatus(authToken,idToken,false);
