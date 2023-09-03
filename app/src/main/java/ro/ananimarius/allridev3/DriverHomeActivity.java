@@ -112,7 +112,7 @@ public class DriverHomeActivity extends AppCompatActivity {
         navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-                // Handle navigation item selection here
+                //handle navigation item selection here
                 return true;
             }
         });
@@ -121,16 +121,16 @@ public class DriverHomeActivity extends AppCompatActivity {
         TextView txtStar = header.findViewById(R.id.txt_star);
         TextView txtPhone = header.findViewById(R.id.txt_phone);
 
-        txtStar.setText("3.5"); // Replace with the actual value
-        txtName.setText(account.getFamilyName()+" "+account.getGivenName()); // Replace with the actual value
-        txtPhone.setText("0730657538");
+        txtStar.setText("4.9"); //replace with the actual value
+        txtName.setText(account.getFamilyName()+" "+account.getGivenName());
+        txtPhone.setText("0730657538"); //replace with the actual value
 
         init();
     }
 
 private String getAuthTokenCookie(){ //SEARCH FOR THE COOKIE TO BE SENT TO THE API
     CookieManager cookieManagerCheck = CookieManager.getInstance();
-    String cookie = cookieManagerCheck.getCookie("http://192.168.1.219:8080");
+    String cookie = cookieManagerCheck.getCookie("http://192.168.43.52:8080");//switchIP
     if (cookie != null) {
         //the cookie exists
         Log.d("COOKIE_GET", "authToken value: " + cookie);
@@ -145,14 +145,14 @@ private String getAuthTokenCookie(){ //SEARCH FOR THE COOKIE TO BE SENT TO THE A
 
 private void deleteCookie(){ //delete cookie from the client
     CookieManager cookieManagerCheck = CookieManager.getInstance();
-    String cookie = cookieManagerCheck.getCookie("http://192.168.1.219:8080");
+    String cookie = cookieManagerCheck.getCookie("http://192.168.43.52:8080");//switchIP
     if (cookie != null) {
         // The cookie exists
         Log.d("COOKIE_DELETED", "authToken value: " + cookie);
         //Toast.makeText(getApplicationContext(), "Cookie found has been deleted ", Toast.LENGTH_SHORT).show();
 
         //delete the cookie
-        cookieManagerCheck.setCookie("http://192.168.1.219:8080", "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        cookieManagerCheck.setCookie("http://192.168.43.52:8080", "authToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT");//switchIP
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             cookieManagerCheck.flush();
         } else {
@@ -217,12 +217,12 @@ private void init() {
 
             OkHttpClient okHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient();
             Retrofit.Builder builder = new Retrofit.Builder()
-                    .baseUrl("http://192.168.1.219:8080/")
+                    .baseUrl("http://192.168.43.52:8080/")//switchIP
                     .client(okHttpClient)
                     .addConverterFactory(GsonConverterFactory.create());
             Retrofit retrofit = builder.build();
             APIInterface api = retrofit.create(APIInterface.class);
-            Call<JsonObject> call = api.signout(authTokenParsed); // Assuming your APIInterface has a "signout" method
+            Call<JsonObject> call = api.signout(authTokenParsed);
 
             call.enqueue(new Callback<JsonObject>() {
                 @Override

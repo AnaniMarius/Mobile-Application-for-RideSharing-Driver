@@ -113,4 +113,7 @@ dependencies {
 
     implementation group: 'com.github.seratch', name: 'java-time-backport', version: '1.0.0'
 
+    //custom toast
+    implementation 'io.github.muddz:styleabletoast:2.4.0'
+
 }

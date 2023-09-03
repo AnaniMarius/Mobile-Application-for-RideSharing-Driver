@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Criteria;
 import android.location.Geocoder;
@@ -57,6 +58,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
+import io.github.muddz.styleabletoast.StyleableToast;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import retrofit2.Callback;
@@ -166,7 +168,6 @@ public class SplashScreenActivity extends AppCompatActivity {
             }
         };
 
-        // Now first make a criteria with your requirements
         // this is done to save the battery life of the device
         // there are various other other criteria you can search for..
         Criteria criteria = new Criteria();
@@ -210,7 +211,18 @@ public class SplashScreenActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 //ggetLocation();
             } else {
-                Toast.makeText(getApplicationContext(), "Permission denied. Closing app...", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), "Permission denied. Closing app...", Toast.LENGTH_SHORT).show();
+                new StyleableToast
+                        .Builder(getApplicationContext())
+                        .text("Permission denied. Closing app...")
+                        .length(0)
+                        .textColor(ContextCompat.getColor(getApplicationContext(), R.color.black))
+                        .font(R.font.uber_move_bold)
+                        .backgroundColor(Color.WHITE)
+                        .gravity(1).solidBackground()
+                        .textSize(20)
+                        .stroke(3,Color.BLACK)
+                        .show();
                 new Handler().postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -247,7 +259,18 @@ public class SplashScreenActivity extends AppCompatActivity {
                     requestCode==RESOLVE_HINT&&resultCode== CredentialsApi.ACTIVITY_RESULT_NO_HINTS_AVAILABLE
             ){
                 //NO PHONE NUMBERS AVAILABLE
-                Toast.makeText(getApplicationContext(),"No phone numbers found",Toast.LENGTH_LONG).show();
+                //Toast.makeText(getApplicationContext(),"No phone numbers found",Toast.LENGTH_LONG).show();
+                new StyleableToast
+                        .Builder(getApplicationContext())
+                        .text("No phone numbers found!")
+                        .length(0)
+                        .textColor(ContextCompat.getColor(getApplicationContext(), R.color.black))
+                        .font(R.font.uber_move_bold)
+                        .backgroundColor(Color.WHITE)
+                        .gravity(1).solidBackground()
+                        .textSize(20)
+                        .stroke(3,Color.BLACK)
+                        .show();
             }
         }
     }
@@ -269,19 +292,27 @@ public class SplashScreenActivity extends AppCompatActivity {
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(getApplicationContext());
         driverInstance=new DriverInfo(account.getIdToken(),account.getEmail(),account.getFamilyName(),
                 account.getGivenName(),account.getPhotoUrl());
-        Toast.makeText(getApplicationContext(), driverInstance.getEmail(), Toast.LENGTH_SHORT).show();
-
-        //experiment
+        //Toast.makeText(getApplicationContext(), driverInstance.getEmail(), Toast.LENGTH_SHORT).show();
+        new StyleableToast
+                .Builder(getApplicationContext())
+                .text("Using "+driverInstance.getEmail())
+                .length(0)
+                .textColor(ContextCompat.getColor(getApplicationContext(), R.color.black))
+                .font(R.font.uber_move_bold)
+                .backgroundColor(Color.WHITE)
+                .gravity(0).solidBackground()
+                .textSize(20)
+                .stroke(3,Color.BLACK)
+                .show();
         OkHttpClient okHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient();
         Retrofit.Builder builder = new Retrofit.Builder()
-                .baseUrl("http://192.168.1.219:8080/")
+                .baseUrl("http://192.168.43.52:8080/")//switchIP
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create());
         Retrofit retrofit = builder.build();
 
-        //end experiment
 //        Retrofit retrofit = new Retrofit.Builder()
-//                .baseUrl("https://192.168.1.219:8080")
+//                .baseUrl("https://192.168.43.52:8080")
 //                .addConverterFactory(GsonConverterFactory.create())
 //                .build();
 
@@ -302,7 +333,7 @@ public class SplashScreenActivity extends AppCompatActivity {
                     //set the cookie with the domain name
                     CookieManager cookieManager = CookieManager.getInstance();
                     cookieManager.setAcceptCookie(true);
-                    cookieManager.setCookie( "http://192.168.1.219:8080","authToken"+ jsonString);
+                    cookieManager.setCookie( "http://192.168.43.52:8080","authToken"+ jsonString);//switchIP
 
                     //sync the cookies accordingly to the android version
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -318,7 +349,7 @@ public class SplashScreenActivity extends AppCompatActivity {
 
                     //check for the cookie if it exists
                     CookieManager cookieManagerCheck = CookieManager.getInstance();
-                    String cookie = cookieManagerCheck.getCookie("http://192.168.1.219:8080");
+                    String cookie = cookieManagerCheck.getCookie("http://192.168.43.52:8080");//switchIP
                     if (cookie != null) {
                         //the cookie exists
                         Log.d("COOKIE", "authToken value: " + cookie);
@@ -330,7 +361,19 @@ public class SplashScreenActivity extends AppCompatActivity {
                     }
                     finish();
                 } else {
-                    Toast.makeText(getApplicationContext(), "Error sending Google account info to server: " + response.code(), Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getApplicationContext(), "Error sending Google account info to server: " + response.code(), Toast.LENGTH_SHORT).show();
+                    new StyleableToast
+                            .Builder(getApplicationContext())
+                            .text("Error sending Google account info to server: " + response.code())
+                            .length(0)
+                            .textColor(ContextCompat.getColor(getApplicationContext(), R.color.black))
+                            .font(R.font.uber_move_bold)
+                            .backgroundColor(Color.WHITE)
+                            .gravity(0).solidBackground()
+                            .solidBackground()
+                            .textSize(20)
+                            .stroke(3,Color.BLACK)
+                            .show();
                 }
             }
 

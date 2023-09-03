@@ -6,6 +6,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Build;
@@ -80,6 +81,7 @@ import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
+import io.github.muddz.styleabletoast.StyleableToast;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -155,11 +157,15 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 
     @Override
     public void onDestroy() {
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         super.onDestroy();
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         // Stop the periodic background task of checking the notifications
         handler.removeCallbacks(notificationsRunnable);
-        super.onDestroy();
+        try{
+            handlerCheckCurrentRide.removeCallbacks(runnableCheckCurrentRide);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -203,7 +209,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 //            .build();
     OkHttpClient okHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient();
     Retrofit.Builder builder = new Retrofit.Builder()
-            .baseUrl("http://192.168.1.219:8080/")
+            .baseUrl("http://192.168.43.52:8080/")//switchIP Wireless LAN adapter Wi-Fi: IPv4 Address. . . . . . . . . . . : 192.168.43.52
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create());
     Retrofit retrofit = builder.build();
@@ -239,7 +245,19 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     @Override
                     public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
                         if (response.isSuccessful()) {
-                            Toast.makeText(getContext(), response.body().toString(), Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(getContext(), response.body().toString(), Toast.LENGTH_SHORT).show();
+                            new StyleableToast
+                                    .Builder(getContext())
+                                    .text(response.body().toString())
+                                    .length(0)
+                                    .textColor(ContextCompat.getColor(getContext(), R.color.black))
+                                    .font(R.font.uber_move_bold)
+                                    .backgroundColor(Color.WHITE)
+                                    .gravity(0).solidBackground()
+                                    .solidBackground()
+                                    .textSize(20)
+                                    .stroke(3,Color.BLACK)
+                                    .show();
                         } else {
                             Toast.makeText(getContext(), "UpdateLocationError: " + response.code()+"+"+response.message(), Toast.LENGTH_SHORT).show();
                         }
@@ -296,6 +314,18 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 @Override
                 public void onClick(View v) {
                     endRide=true;
+                    new StyleableToast
+                            .Builder(getContext())
+                            .text("You agreed to end the ride!")
+                            .length(0)
+                            .textColor(Color.BLACK)
+                            .font(R.font.uber_move_bold)
+                            .backgroundColor(ContextCompat.getColor(getContext(), R.color.white))
+                            .gravity(0)
+                            .solidBackground()
+                            .textSize(20)
+                            .stroke(3,Color.BLACK)
+                            .show();
                 }
             });
         } catch (Exception e) {
@@ -307,6 +337,18 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 @Override
                 public void onClick(View v) {
                     cancelRide=true;
+                    new StyleableToast
+                            .Builder(getContext())
+                            .text("You canceled the ride!")
+                            .length(0)
+                            .textColor(Color.BLACK)
+                            .font(R.font.uber_move_bold)
+                            .backgroundColor(ContextCompat.getColor(getContext(), R.color.white))
+                            .gravity(0).solidBackground()
+                            .solidBackground()
+                            .textSize(20)
+                            .stroke(3,Color.BLACK)
+                            .show();
                 }
             });
         } catch (Exception e) {
@@ -402,7 +444,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             @Override
             public void run() {
                 checkCurrentRide();
-                handler.postDelayed(this, 5000); // Schedule the Runnable to run again after 1 second
+                handler.postDelayed(this, 1000); // Schedule the Runnable to run again after 1 second
             }
         };
 
@@ -424,7 +466,19 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 getActivity().runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        Toast.makeText(requireContext(), "The ride is in progress!", Toast.LENGTH_SHORT).show();
+                                        //Toast.makeText(requireContext(), "The ride is in progress!", Toast.LENGTH_SHORT).show();
+                                        new StyleableToast
+                                                .Builder(requireContext())
+                                                .text("The ride is in progress!")
+                                                .length(0)
+                                                .textColor(ContextCompat.getColor(requireContext(), R.color.black))
+                                                .font(R.font.uber_move_bold)
+                                                .backgroundColor(Color.WHITE)
+                                                .gravity(0).solidBackground()
+                                                .solidBackground()
+                                                .textSize(20)
+                                                .stroke(3,Color.BLACK)
+                                                .show();
                                     }
                                 });
                             } catch (Exception e) {
@@ -507,7 +561,19 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                             nextN = notification;
                         }
                         declineRequest(nextN, false);
-                        Toast.makeText(getContext(), "Request rejected!", Toast.LENGTH_SHORT).show();
+                        //Toast.makeText(getContext(), "Request rejected!", Toast.LENGTH_SHORT).show();
+                        new StyleableToast
+                                .Builder(getContext())
+                                .text("Request rejected!" + response.code())
+                                .length(0)
+                                .textColor(ContextCompat.getColor(getContext(), R.color.black))
+                                .font(R.font.uber_move_bold)
+                                .backgroundColor(Color.WHITE)
+                                .gravity(0).solidBackground()
+                                .solidBackground()
+                                .textSize(20)
+                                .stroke(3,Color.BLACK)
+                                .show();
                     }
                 } else {
                     activeRide = false;
@@ -536,6 +602,17 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 if(activeRide==true) {
                     activeRide = false;
                     try {
+                        new StyleableToast
+                                .Builder(getContext())
+                                .text("The ride has been ended!")
+                                .length(0)
+                                .textColor(Color.BLACK)
+                                .font(R.font.uber_move_bold)
+                                .backgroundColor(ContextCompat.getColor(getContext(), R.color.white))
+                                .gravity(1).solidBackground()
+                                .textSize(20)
+                                .stroke(3,Color.BLACK)
+                                .show();
                         endRide = false;
                         cancelRide = false;
                         toggleRideButtons();
@@ -591,7 +668,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
 
     //CHECK THE NOTIFICATIONS
     private Handler handler = new Handler();
-    private int delay = 1000; // 5 seconds in milliseconds
+    private int delay = 1000; // 1 second in milliseconds
     private Runnable notificationsRunnable = new Runnable() {
         @Override
         public void run() {
@@ -707,6 +784,17 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                 chipDecline.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
+                                        new StyleableToast
+                                                .Builder(getContext())
+                                                .text("The request has been declined!")
+                                                .length(0)
+                                                .textColor(ContextCompat.getColor(getContext(), R.color.black))
+                                                .font(R.font.uber_move_bold)
+                                                .backgroundColor(Color.WHITE)
+                                                .stroke(3,Color.BLACK)
+                                                .gravity(1).solidBackground()
+                                                .textSize(20)
+                                                .show();
                                         notifications.clear();
                                         chipDecline.setVisibility(View.GONE);
                                         layoutAccept.setVisibility(View.GONE);
@@ -738,7 +826,7 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                                     circularProgressBar.setProgress((float) progress / 100);
                                     progress++;
                                     if (secondsLeft <= 0) {
-                                        Toast.makeText(getContext(), "Accept Action", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(getContext(), "Accepted!", Toast.LENGTH_SHORT).show();
                                         notifications.clear();
                                         chipDecline.setVisibility(View.GONE);
                                         layoutAccept.setVisibility(View.GONE);
@@ -793,9 +881,33 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                 public void onResponse(Call<RideDTO> call, Response<RideDTO> response) {
                     if (response.isSuccessful()) {
                         if (status == false) {
-                            Toast.makeText(getContext(), "The request has been rejected!", Toast.LENGTH_SHORT).show();
+                            //Toast.makeText(getContext(), "The request has been rejected!", Toast.LENGTH_SHORT).show();
+                            new StyleableToast
+                                    .Builder(getContext())
+                                    .text("The request has been rejected!" + response.code())
+                                    .length(0)
+                                    .textColor(ContextCompat.getColor(getContext(), R.color.black))
+                                    .font(R.font.uber_move_bold)
+                                    .backgroundColor(Color.WHITE)
+                                    .gravity(0).solidBackground()
+                                    .solidBackground()
+                                    .textSize(20)
+                                    .stroke(3,Color.BLACK)
+                                    .show();
                         } else {
-                            Toast.makeText(getContext(), "The request has been accepted!", Toast.LENGTH_SHORT).show();
+                           //Toast.makeText(getContext(), "The request has been accepted!", Toast.LENGTH_SHORT).show();
+                            new StyleableToast
+                                    .Builder(getContext())
+                                    .text("The request has been accepted!")
+                                    .length(0)
+                                    .textColor(ContextCompat.getColor(getContext(), R.color.black))
+                                    .font(R.font.uber_move_bold)
+                                    .backgroundColor(Color.WHITE)
+                                    .gravity(0).solidBackground()
+                                    .solidBackground()
+                                    .textSize(20)
+                                    .stroke(3,Color.BLACK)
+                                    .show();
                             ride=response.body().clone();
                         }
                     } else {
@@ -816,7 +928,20 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
                     } else {
                         errorMessage = t.getMessage();
                     }
-                    Toast.makeText(getContext(), "The request has been declined!", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getContext(), "The request has been declined!", Toast.LENGTH_SHORT).show();
+//                    if(activeRide==false)
+//                        new StyleableToast
+//                                .Builder(getContext())
+//                                .text("The request has been declined!")
+//                                .length(0)
+//                                .textColor(ContextCompat.getColor(getContext(), R.color.black))
+//                                .font(R.font.uber_move_bold)
+//                                .backgroundColor(Color.WHITE)
+//                                .gravity(0).solidBackground()
+//                                .solidBackground()
+//                                .textSize(20)
+//                                .stroke(3,Color.BLACK)
+//                                .show();
                     //Toast.makeText(getContext(), "changeTheStatusOfTheRequest, Status code: " + statusCode + ", Message: " + errorMessage, Toast.LENGTH_SHORT).show();
                 }
             });
@@ -970,7 +1095,19 @@ public class HomeFragment extends Fragment implements OnMapReadyCallback,GoogleM
             if (intent.resolveActivity(getContext().getPackageManager()) != null) {
                 startActivity(intent);
             } else {
-                Toast.makeText(getContext(), "Please install Google Maps, or use other separate GPS application!", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getContext(), "Please install Google Maps, or use other separate GPS application!", Toast.LENGTH_SHORT).show();
+                new StyleableToast
+                        .Builder(getContext())
+                        .text("Please install Google Maps, or use other separate GPS application!")
+                        .length(0)
+                        .textColor(ContextCompat.getColor(getContext(), R.color.black))
+                        .font(R.font.uber_move_bold)
+                        .backgroundColor(Color.WHITE)
+                        .gravity(0).solidBackground()
+                        .solidBackground()
+                        .textSize(20)
+                        .stroke(3,Color.BLACK)
+                        .show();
             }
         }
     }
